@@ -1,13 +1,13 @@
 // Game data: weapons, demons, shop items and wave tuning.
 
 export const CATEGORIES = {
-  pistol: 'პისტოლეტები',
-  smg: 'პისტოლეტ-ავტომატები',
-  shotgun: 'საფანტიანი თოფები',
-  rifle: 'ავტომატები',
-  lmg: 'ტყვიამფრქვევები',
-  sniper: 'სნაიპერული შაშხანები',
-  special: 'სპეციალური',
+  pistol: 'Pistols',
+  smg: 'SMGs',
+  shotgun: 'Shotguns',
+  rifle: 'Assault Rifles',
+  lmg: 'Machine Guns',
+  sniper: 'Sniper Rifles',
+  special: 'Special',
 };
 
 // type: hitscan | flame | tesla | beam | rocket
@@ -26,7 +26,7 @@ export const WEAPONS = [
   { id: 'vector', name: 'KRISS Vector', cat: 'smg', price: 1850, dmg: 21, rpm: 1200, auto: true, mag: 33, reload: 1.6, spread: 0.06, range: 24 },
   // Shotguns
   { id: 'pump', name: 'Remington 870', cat: 'shotgun', price: 1100, dmg: 17, pellets: 8, rpm: 70, auto: false, mag: 6, reload: 2.4, spread: 0.17, range: 14 },
-  { id: 'dbarrel', name: 'ორლულიანი', cat: 'shotgun', price: 1300, dmg: 20, pellets: 10, rpm: 200, auto: false, mag: 2, reload: 1.8, spread: 0.24, range: 12 },
+  { id: 'dbarrel', name: 'Double Barrel', cat: 'shotgun', price: 1300, dmg: 20, pellets: 10, rpm: 200, auto: false, mag: 2, reload: 1.8, spread: 0.24, range: 12 },
   { id: 'spas', name: 'SPAS-12', cat: 'shotgun', price: 2000, dmg: 19, pellets: 9, rpm: 150, auto: false, mag: 8, reload: 2.6, spread: 0.16, range: 15 },
   { id: 'aa12', name: 'AA-12', cat: 'shotgun', price: 3400, dmg: 16, pellets: 8, rpm: 300, auto: true, mag: 20, reload: 3.0, spread: 0.18, range: 14 },
   // Rifles
@@ -43,13 +43,13 @@ export const WEAPONS = [
   { id: 'm24', name: 'M24', cat: 'sniper', price: 3600, dmg: 240, rpm: 50, auto: false, mag: 5, reload: 3.0, spread: 0, range: 50, pierce: 5 },
   { id: 'barrett', name: 'Barrett .50', cat: 'sniper', price: 5500, dmg: 420, rpm: 90, auto: false, mag: 10, reload: 3.5, spread: 0.004, range: 60, pierce: 8, move: 0.9 },
   // Special
-  { id: 'flamer', name: 'ცეცხლსასროლი', cat: 'special', type: 'flame', price: 4200, dmg: 9, rpm: 1200, auto: true, mag: 150, reload: 3.5, range: 6.5, cone: 0.32 },
-  { id: 'm32', name: 'M32 ყუმბარმტყორცნი', cat: 'special', type: 'rocket', price: 4800, dmg: 190, splash: 3.4, projSpeed: 17, rpm: 130, auto: false, mag: 6, reload: 3.6, spread: 0.02, range: 40 },
+  { id: 'flamer', name: 'Flamethrower', cat: 'special', type: 'flame', price: 4200, dmg: 9, rpm: 1200, auto: true, mag: 150, reload: 3.5, range: 6.5, cone: 0.32 },
+  { id: 'm32', name: 'M32 Grenade Launcher', cat: 'special', type: 'rocket', price: 4800, dmg: 190, splash: 3.4, projSpeed: 17, rpm: 130, auto: false, mag: 6, reload: 3.6, spread: 0.02, range: 40 },
   { id: 'rpg', name: 'RPG-7', cat: 'special', type: 'rocket', price: 5800, dmg: 480, splash: 4.6, projSpeed: 22, rpm: 40, auto: false, mag: 1, reload: 2.5, spread: 0.01, range: 50, move: 0.9 },
-  { id: 'tesla', name: 'ტესლას ქვემეხი', cat: 'special', type: 'tesla', price: 6500, dmg: 60, chain: 4, rpm: 400, auto: true, mag: 40, reload: 2.8, range: 11, cone: 0.5 },
-  { id: 'laser', name: 'ლაზერული შაშხანა', cat: 'special', type: 'beam', price: 7000, dmg: 55, rpm: 500, auto: true, mag: 60, reload: 2.8, spread: 0.01, range: 40, pierce: 99, color: 0x33ffff },
-  { id: 'minigun', name: 'მინიგანი', cat: 'special', price: 8500, dmg: 30, rpm: 2000, auto: true, mag: 300, reload: 6.0, spread: 0.09, range: 32, pierce: 1, move: 0.7 },
-  { id: 'railgun', name: 'რელსური ქვემეხი', cat: 'special', type: 'beam', price: 10000, dmg: 950, rpm: 45, auto: false, mag: 4, reload: 3.2, spread: 0, range: 60, pierce: 99, color: 0x6f8cff },
+  { id: 'tesla', name: 'Tesla Cannon', cat: 'special', type: 'tesla', price: 6500, dmg: 60, chain: 4, rpm: 400, auto: true, mag: 40, reload: 2.8, range: 11, cone: 0.5 },
+  { id: 'laser', name: 'Laser Rifle', cat: 'special', type: 'beam', price: 7000, dmg: 55, rpm: 500, auto: true, mag: 60, reload: 2.8, spread: 0.01, range: 40, pierce: 99, color: 0x33ffff },
+  { id: 'minigun', name: 'Minigun', cat: 'special', price: 8500, dmg: 30, rpm: 2000, auto: true, mag: 300, reload: 6.0, spread: 0.09, range: 32, pierce: 1, move: 0.7 },
+  { id: 'railgun', name: 'Railgun', cat: 'special', type: 'beam', price: 10000, dmg: 950, rpm: 45, auto: false, mag: 4, reload: 3.2, spread: 0, range: 60, pierce: 99, color: 0x6f8cff },
 ];
 export const WEAPON_BY_ID = Object.fromEntries(WEAPONS.map((w) => [w.id, w]));
 
@@ -87,42 +87,42 @@ export const ENEMY_TYPES = {
 
 export const PLAYER = { hp: 100, speed: 4.2, radius: 0.3, eye: 1.62, downedTime: 10, downedHp: 100 };
 // The black dog fights up close with her blades.
-export const COMPANION = { name: 'შავი ძაღლი', hp: 170, speed: 4.8, dmg: 34, atkRate: 0.75, reach: 0.95, seek: 9, leash: 11, reviveTime: 2.5 };
+export const COMPANION = { name: 'Black Dog', hp: 170, speed: 4.8, dmg: 34, atkRate: 0.75, reach: 0.95, seek: 9, leash: 11, reviveTime: 2.5 };
 
 // Three shop points in different parts of the station.
 export const SHOPS = [
-  { id: 'arms', name: 'იარაღის საწყობი', color: 0xffb020, at: [-8.5, -1.0] },
-  { id: 'armor', name: 'ბრონი და ბომბები', color: 0x3aa0ff, at: [3.1, -6.3] },
-  { id: 'med', name: 'გამაცოცხლებლები და ბუსტერები', color: 0x3dff7a, at: [8.1, -0.9] },
+  { id: 'arms', name: 'Armory', color: 0xffb020, at: [-8.5, -1.0] },
+  { id: 'armor', name: 'Armor & Explosives', color: 0x3aa0ff, at: [3.1, -6.3] },
+  { id: 'med', name: 'Revives & Boosters', color: 0x3dff7a, at: [8.1, -0.9] },
 ];
 
 export const ARMOR_ITEMS = [
-  { id: 'armor_light', name: 'მსუბუქი ბრონი', desc: '50 ბრონის ქულა', price: 300, armor: 50 },
-  { id: 'armor_heavy', name: 'მძიმე ბრონიჟილეტი', desc: '100 ბრონის ქულა', price: 650, armor: 100 },
-  { id: 'armor_jugg', name: 'ჯაგერნაუტის ბრონი', desc: '200 ბრონის ქულა', price: 1400, armor: 200 },
-  { id: 'grenade', name: 'ყუმბარა ×3', desc: 'G ღილაკი — სროლა (მაქს. 10)', price: 250 },
-  { id: 'mine', name: 'ნაღმი ×2', desc: 'F ღილაკი — დადება (მაქს. 8)', price: 300 },
+  { id: 'armor_light', name: 'Light Armor', desc: '50 armor points', price: 300, armor: 50 },
+  { id: 'armor_heavy', name: 'Heavy Vest', desc: '100 armor points', price: 650, armor: 100 },
+  { id: 'armor_jugg', name: 'Juggernaut Suit', desc: '200 armor points', price: 1400, armor: 200 },
+  { id: 'grenade', name: 'Grenades ×3', desc: 'Throw with G (max 10)', price: 250 },
+  { id: 'mine', name: 'Mines ×2', desc: 'Place with F (max 8)', price: 300 },
 ];
 
 export const MED_ITEMS = [
-  { id: 'revive', name: 'გამაცოცხლებელი', desc: 'თუ დაცემულს მოგკლავენ — ფეხზე წამოგაყენებს (მაქს. 1)', price: 1500 },
-  { id: 'medkit', name: 'სამედიცინო ნაკრები', desc: 'სრული სიცოცხლე', price: 200 },
-  { id: 'boost_dmg', name: 'ორმაგი ზიანი', desc: '30 წამი ×2 ზიანი', price: 600, boost: 'dmg', time: 30 },
-  { id: 'boost_rate', name: 'სწრაფი სროლა', desc: '30 წამი +65% სროლის სიჩქარე', price: 500, boost: 'rate', time: 30 },
-  { id: 'boost_speed', name: 'სისწრაფე', desc: '30 წამი +40% სიარული', price: 300, boost: 'speed', time: 30 },
-  { id: 'boost_regen', name: 'რეგენერაცია', desc: '45 წამი +6 სიცოცხლე/წმ', price: 400, boost: 'regen', time: 45 },
-  { id: 'comp_heal', name: 'დამხმარის მკურნალობა', desc: 'შავი ძაღლის სრული სიცოცხლე', price: 150 },
-  { id: 'comp_up', name: 'დამხმარის გაძლიერება', desc: '+ზიანი, +სიცოცხლე, +სისწრაფე (მაქს. 5 დონე)', price: 800 },
+  { id: 'revive', name: 'Self-Revive', desc: 'If you die while down, it brings you back (max 1)', price: 1500 },
+  { id: 'medkit', name: 'Medkit', desc: 'Full health', price: 200 },
+  { id: 'boost_dmg', name: 'Double Damage', desc: '×2 damage for 30s', price: 600, boost: 'dmg', time: 30 },
+  { id: 'boost_rate', name: 'Rapid Fire', desc: '+65% fire rate for 30s', price: 500, boost: 'rate', time: 30 },
+  { id: 'boost_speed', name: 'Speed', desc: '+40% move speed for 30s', price: 300, boost: 'speed', time: 30 },
+  { id: 'boost_regen', name: 'Regeneration', desc: '+6 HP/s for 45s', price: 400, boost: 'regen', time: 45 },
+  { id: 'comp_heal', name: 'Heal Companion', desc: 'Black Dog to full health', price: 150 },
+  { id: 'comp_up', name: 'Upgrade Companion', desc: '+damage, +health, +speed (max level 5)', price: 800 },
 ];
 
-export const BOOST_LABELS = { dmg: '×2 ზიანი', rate: 'სწრაფი სროლა', speed: 'სისწრაფე', regen: 'რეგენი', insta: 'ერთი დარტყმით', double: '×2 ქოინი' };
+export const BOOST_LABELS = { dmg: 'Double Damage', rate: 'Rapid Fire', speed: 'Speed', regen: 'Regen', insta: 'Insta-Kill', double: 'Double Coins' };
 
 // Power-ups that demons sometimes drop (walk over them to pick up).
 export const POWERUPS = {
-  ammo: { name: 'მაქსიმალური ტყვიები', color: 0x40ff70, weight: 32 },
-  insta: { name: 'ერთი დარტყმით კვლა', color: 0xff3030, weight: 20, time: 15 },
-  double: { name: 'ორმაგი ქოინები', color: 0xffc530, weight: 28, time: 20 },
-  nuke: { name: 'ბირთვული აფეთქება', color: 0xffffff, weight: 10 },
+  ammo: { name: 'MAX AMMO', color: 0x40ff70, weight: 32 },
+  insta: { name: 'INSTA-KILL', color: 0xff3030, weight: 20, time: 15 },
+  double: { name: 'DOUBLE COINS', color: 0xffc530, weight: 28, time: 20 },
+  nuke: { name: 'NUKE', color: 0xffffff, weight: 10 },
 };
 export const DROP_CHANCE = 0.035;
 

@@ -76,7 +76,9 @@ const G = {
   enemies: [], pool: {},
   projectiles: [], mines: [], rifts: [], kiosks: [], blockers: [], powerups: [],
   shopOpen: null, flowT: 0, groanT: 3, heartT: 0, locked: false,
+  ws: null, // per-wave stats for the stage-clear bonus
 };
+function newWaveStats() { return { kills: 0, heads: 0, knife: 0, dmg: 0, dogDowns: 0, start: G.time }; }
 const assets = {};
 const PREP = {};
 const input = { keys: {}, down: false, clicked: false, lookDX: 0, lookDY: 0 };
@@ -109,7 +111,7 @@ async function loadAssets() {
     loader.load(`${BASE}models/${f}`, (g) => { assets[k] = g; prog[k] = 1; update(); res(); },
       (e) => { if (e.total) { prog[k] = e.loaded / e.total; update(); } }, rej);
   })));
-  try { await Promise.race([document.fonts.load('800 40px "Noto Sans Georgian"'), new Promise((r) => setTimeout(r, 2500))]); } catch (e) { /* font optional */ }
+  try { await Promise.race([Promise.all([document.fonts.load('700 40px "Oswald"'), document.fonts.load('40px "Creepster"')]), new Promise((r) => setTimeout(r, 2500))]); } catch (e) { /* font optional */ }
 }
 
 // Measure a model (in its first animation pose) so clones can be centred, grounded and scaled.
@@ -152,7 +154,7 @@ function buildWorld() {
   arenaMixer = new THREE.AnimationMixer(arena);
   assets.arena.animations.forEach((c) => arenaMixer.clipAction(c).play());
 
-  $('load-status').textContent = 'სადგურის რუკის აგება...';
+  $('load-status').textContent = 'Mapping the station...';
   nav.build(arena);
   fx.floorY = nav.floorY;
 
@@ -165,7 +167,7 @@ function textSprite(text, color, w = 2.6) {
   const c = document.createElement('canvas');
   c.width = 1024; c.height = 160;
   const x = c.getContext('2d');
-  x.font = '800 62px "Noto Sans Georgian", sans-serif';
+  x.font = '700 64px "Oswald", sans-serif';
   x.textAlign = 'center'; x.textBaseline = 'middle';
   x.shadowColor = color; x.shadowBlur = 24;
   x.fillStyle = '#fff';
@@ -429,12 +431,14 @@ class Enemy {
     G.kills++;
     let coins = this.T.coins;
     let tag = '';
-    if (this.lastHead) { coins = Math.round(coins * 1.5); tag = ' თავში!'; }
-    if (this.lastMelee) { coins += 10; tag = ' დანით!'; }
+    if (this.lastHead) { coins = Math.round(coins * 1.5); tag = ' HEADSHOT'; }
+    if (this.lastMelee) { coins += 10; tag = ' KNIFE'; }
     if (player.boosts.double > 0) coins *= 2;
+    if (G.ws) { G.ws.kills++; if (this.lastHead) G.ws.heads++; if (this.lastMelee) G.ws.knife++; }
     if (!G.nuking) {
       G.coins += coins;
-      popup(`+${coins}${tag}`, this.pos.x, this.pos.y + this.height, this.pos.z, tag ? '#ff8040' : '#ffc530');
+      popup(`+${coins}${tag}`, this.pos.x, this.pos.y + this.height, this.pos.z, tag ? '#ff8040' : '#ffc530', true);
+      coinBurst(this.pos.x, this.pos.y + this.height * 0.6, this.pos.z);
       sfx.coin();
       if (Math.random() < DROP_CHANCE && G.phase === 'wave') dropPowerup(this.pos.x, this.pos.z);
     }
@@ -1010,6 +1014,7 @@ function hurtPlayer(dmg, from) {
     return;
   }
   player.lastHurt = G.time;
+  if (G.ws) G.ws.dmg += dmg;
   const absorbed = Math.min(player.armor, dmg * 0.7);
   player.armor -= absorbed;
   player.hp -= dmg - absorbed;
@@ -1053,7 +1058,7 @@ function standUp(hp, msg) {
 function killedWhileDown() {
   if (player.revive > 0) {
     player.revive--;
-    standUp(60, 'გაცოცხლდი!');
+    standUp(60, 'REVIVED!');
     for (const e of G.enemies) {
       if (!isLive(e)) continue;
       const d = Math.hypot(e.pos.x - player.pos.x, e.pos.z - player.pos.z);
@@ -1082,8 +1087,9 @@ function hurtCompanion(dmg) {
     comp.hp = 0;
     comp.state = 'down';
     comp.reviveProg = 0;
+    if (G.ws) G.ws.dogDowns++;
     sfx.downed();
-    announce(`${COMPANION.name} დაეცა!`, 'მიდი და გააცოცხლე — დააჭირე და გააჩერე [E]', 2.4);
+    announce(`${COMPANION.name} is down!`, 'Go to her and hold [E] to revive', 2.4);
   }
 }
 
@@ -1201,7 +1207,7 @@ function updatePlayer(dt) {
     p.downT -= dt;
     $('downed-timer').textContent = Math.ceil(Math.max(0, p.downT));
     $('downed-fill').style.width = `${clamp(p.downHp / PLAYER.downedHp, 0, 1) * 100}%`;
-    if (p.downT <= 0) standUp(40, 'გადარჩი!');
+    if (p.downT <= 0) standUp(40, 'YOU SURVIVED!');
   }
 
   // camera: eye height, bob, downed tilt
@@ -1251,7 +1257,7 @@ function updatePlayer(dt) {
     if (slot.ammo <= 0) {
       sfx.empty();
       if (slot.reserve > 0) startReload();
-      else if (p.state === 'up' && p.cur !== 0) { switchSlot(0); announce('ტყვია გათავდა', 'იყიდე ტყვიები იარაღის საწყობში', 1.6); }
+      else if (p.state === 'up' && p.cur !== 0) { switchSlot(0); announce('OUT OF AMMO', 'Buy ammo at the Armory', 1.6); }
     } else {
       slot.ammo--;
       p.fireCd = 60 / w.rpm / (p.boosts.rate > 0 ? 1.65 : 1);
@@ -1374,7 +1380,7 @@ function iconSprite(text, color) {
   const c = document.createElement('canvas');
   c.width = c.height = 128;
   const x = c.getContext('2d');
-  x.font = '900 64px "Noto Sans Georgian", sans-serif';
+  x.font = '700 64px "Oswald", sans-serif';
   x.textAlign = 'center'; x.textBaseline = 'middle';
   x.shadowColor = color; x.shadowBlur = 18;
   x.fillStyle = '#fff';
@@ -1441,6 +1447,77 @@ function updatePowerups(dt) {
   }
 }
 
+// ---------------------------------------------------------------- stage clear bonus
+let scTimers = [];
+function stageClear() {
+  const ws = G.ws || newWaveStats();
+  const w = G.wave;
+  const time = G.time - ws.start;
+  const par = 15 + G.waveTotal * 2.2;
+  const lines = [[`Wave ${w} cleared`, 50 + w * 25]];
+  if (ws.kills) lines.push([`Demons slain × ${ws.kills}`, ws.kills * 3]);
+  if (ws.heads) lines.push([`Headshots × ${ws.heads}`, ws.heads * 8]);
+  if (ws.knife) lines.push([`Knife kills × ${ws.knife}`, ws.knife * 12]);
+  if (ws.dmg === 0) lines.push(['Untouchable — no damage taken', 100 + w * 20]);
+  if (time < par) lines.push([`Speed bonus — ${Math.round(time)}s (par ${Math.round(par)}s)`, Math.round((par - time) * 4)]);
+  if (ws.dogDowns === 0) lines.push([`${COMPANION.name} never fell`, 40 + w * 10]);
+  const total = lines.reduce((a, l) => a + l[1], 0);
+  G.coins += total;
+  G.ws = null;
+
+  scTimers.forEach(clearTimeout);
+  scTimers = [];
+  $('sc-title').textContent = `WAVE ${w} CLEARED`;
+  $('sc-lines').innerHTML = lines.map(([t, v]) => `<div><span>${t}</span><b>+${v}</b></div>`).join('');
+  $('sc-total').textContent = '0';
+  $('stage-clear').classList.add('show');
+  const rows = [...$('sc-lines').children];
+  let shown = 0;
+  rows.forEach((row, i) => scTimers.push(setTimeout(() => {
+    row.classList.add('in');
+    shown += lines[i][1];
+    $('sc-total').textContent = `+${shown}`;
+    sfx.coin();
+  }, 400 + i * 320)));
+  scTimers.push(setTimeout(() => $('stage-clear').classList.remove('show'), 400 + rows.length * 320 + 4200));
+}
+
+// Spinning 3D coins that fly up out of slain demons.
+let coinTex = null;
+const coinSprites = [];
+function coinBurst(x, y, z) {
+  if (!coinTex) return;
+  const n = 1 + Math.floor(Math.random() * 2);
+  for (let i = 0; i < n; i++) {
+    let c = coinSprites.find((k) => k.t <= 0);
+    if (!c) {
+      if (coinSprites.length > 24) return;
+      const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: coinTex, transparent: true, depthWrite: false, toneMapped: false }));
+      scene.add(sp);
+      c = { sp, t: 0, v: new THREE.Vector3() };
+      coinSprites.push(c);
+    }
+    c.t = 0.9;
+    c.sp.visible = true;
+    c.sp.position.set(x, y, z);
+    c.v.set(rand(-0.8, 0.8), rand(2.5, 3.5), rand(-0.8, 0.8));
+    c.spin = rand(0, 6);
+  }
+}
+function updateCoins(dt) {
+  for (const c of coinSprites) {
+    if (c.t <= 0) continue;
+    c.t -= dt;
+    c.v.y -= 6 * dt;
+    c.sp.position.addScaledVector(c.v, dt);
+    c.spin += dt * 12;
+    const s = 0.22;
+    c.sp.scale.set(s * Math.abs(Math.cos(c.spin)) + 0.02, s, 1);
+    c.sp.material.opacity = Math.min(1, c.t * 3);
+    if (c.t <= 0) c.sp.visible = false;
+  }
+}
+
 // Blackout rounds: the station's lights die, only your flashlight is left.
 let blackout = false;
 function setBlackout(on) {
@@ -1465,14 +1542,15 @@ function startWave() {
   if (G.waveKind === 'rush') { G.scale.spawnGap *= 0.55; G.scale.maxAlive += 6; }
   G.spawnT = 1.5;
   G.waveTotal = G.queue.length;
+  G.ws = newWaveStats();
   sfx.siren();
   const sub = {
-    boss: 'ბრუტები მოდიან...',
-    rush: `ჯოჯოხეთის შემოსევა — ${G.waveTotal} სწრაფი დემონი!`,
-    blackout: `შუქი ჩაქრა... ${G.waveTotal} დემონი სიბნელეში`,
-    normal: `${G.waveTotal} დემონი`,
+    boss: 'The Brutes are coming...',
+    rush: `HELL RUSH — ${G.waveTotal} fast demons!`,
+    blackout: `BLACKOUT... ${G.waveTotal} demons in the dark`,
+    normal: `${G.waveTotal} demons`,
   }[G.waveKind];
-  announce(`ტალღა ${G.wave}`, sub, 2.8);
+  announce(`WAVE ${G.wave}`, sub, 2.8);
   if (G.waveKind === 'blackout') { setBlackout(true); sfx.blackout(); }
   hemi.color.set(0xff3030);
   setTimeout(() => hemi.color.set(0x8a9ac0), 900);
@@ -1490,10 +1568,8 @@ function updateWaves(dt) {
     G.spawnT = G.scale.spawnGap * rand(0.6, 1.4);
   }
   if (!G.queue.length && aliveCount() === 0) {
-    const bonus = 50 + G.wave * 25;
-    G.coins += bonus;
     sfx.waveClear();
-    announce(`ტალღა ${G.wave} გავლილია`, `ბონუსი +${bonus} · შესვენება ${BREAK_TIME} წამი`, 3);
+    stageClear();
     setBlackout(false);
     startBreak(BREAK_TIME);
   }
@@ -1531,7 +1607,7 @@ function card(item, price, state, onBuy) {
   const d = document.createElement('div');
   d.className = `card${state.owned ? ' owned' : ''}`;
   d.innerHTML = `<div class="nm">${item.name}</div><div class="ds">${item.desc || ''}</div>
-    <div class="row"><span class="pr">${price === 0 ? 'უფასო' : price}</span><button ${state.disabled ? 'disabled' : ''}>${state.label || 'ყიდვა'}</button></div>`;
+    <div class="row"><span class="pr">${price === 0 ? 'FREE' : price}</span><button ${state.disabled ? 'disabled' : ''}>${state.label || 'Buy'}</button></div>`;
   d.querySelector('button').addEventListener('click', (ev) => { ev.stopPropagation(); onBuy(); });
   return d;
 }
@@ -1546,9 +1622,9 @@ function pay(price) {
 function weaponDesc(w) {
   const type = w.type || 'hitscan';
   const dmg = w.pellets ? `${w.dmg}×${w.pellets}` : w.dmg;
-  const extra = type === 'flame' ? ' · წვა' : type === 'tesla' ? ` · ჯაჭვი ×${w.chain}` : type === 'rocket' ? ' · აფეთქება' : w.pierce ? ` · გამჭოლი ${w.pierce > 50 ? '∞' : w.pierce}` : '';
+  const extra = type === 'flame' ? ' · burns' : type === 'tesla' ? ` · chains ×${w.chain}` : type === 'rocket' ? ' · explosive' : w.pierce ? ` · pierce ${w.pierce > 50 ? '∞' : w.pierce}` : '';
   const res = maxReserve(w);
-  return `ზიანი ${dmg} · ${w.rpm}/წთ · ${w.mag}/${res === Infinity ? '∞' : res} ტყვია${extra}`;
+  return `DMG ${dmg} · ${w.rpm} RPM · ${w.mag}/${res === Infinity ? '∞' : res} rounds${extra}`;
 }
 
 function renderShop() {
@@ -1559,7 +1635,7 @@ function renderShop() {
   const body = $('shop-body');
   body.innerHTML = '';
   if (k.id === 'arms') {
-    $('shop-note').textContent = 'ატარებ 3 იარაღს: პისტოლეტი + 2 ძირითადი. ახალი იარაღი ცვლის ხელში არსებულს (ან ცარიელ სლოტს). შენს იარაღზე აქ ტყვიებს ყიდულობ.';
+    $('shop-note').textContent = 'You carry 3 weapons: pistol + 2 primaries. A new weapon replaces the one in your hands (or fills an empty slot). Refill ammo for weapons you own here.';
     for (const cat of Object.keys(CATEGORIES)) {
       const t = document.createElement('div');
       t.className = 'cat-title';
@@ -1573,34 +1649,34 @@ function renderShop() {
           const full = sl.ammo >= w.mag && sl.reserve >= maxReserve(w);
           const ap = ammoPrice(w);
           grid.appendChild(card({ name: w.name, desc: weaponDesc(w) }, ap,
-            { owned: true, disabled: full || G.coins < ap, label: full ? 'სავსეა' : 'ტყვიები' }, () => buyWeapon(w)));
+            { owned: true, disabled: full || G.coins < ap, label: full ? 'Full' : 'Ammo' }, () => buyWeapon(w)));
         } else {
           grid.appendChild(card({ name: w.name, desc: weaponDesc(w) }, w.price,
-            { disabled: G.coins < w.price, label: 'ყიდვა' }, () => buyWeapon(w)));
+            { disabled: G.coins < w.price, label: 'Buy' }, () => buyWeapon(w)));
         }
       }
       body.appendChild(grid);
     }
   } else {
     const list = k.id === 'armor' ? ARMOR_ITEMS : MED_ITEMS;
-    $('shop-note').textContent = k.id === 'armor' ? `ბრონი: ${Math.round(player.armor)} · ყუმბარები: ${player.grenades} · ნაღმები: ${player.mines}`
-      : `გამაცოცხლებელი: ${player.revive}/1 · ${COMPANION.name} — დონე ${comp.level}/5`;
+    $('shop-note').textContent = k.id === 'armor' ? `Armor: ${Math.round(player.armor)} · Grenades: ${player.grenades} · Mines: ${player.mines}`
+      : `Self-revive: ${player.revive}/1 · ${COMPANION.name} — level ${comp.level}/5`;
     const grid = document.createElement('div');
     grid.className = 'cards';
     for (const it of list) {
       let price = it.price;
       let disabled = G.coins < price;
       let label;
-      if (it.id === 'revive' && player.revive >= 1) { disabled = true; label = 'გაქვს'; }
-      if (it.id === 'grenade' && player.grenades >= 10) { disabled = true; label = 'სავსეა'; }
-      if (it.id === 'mine' && player.mines >= 8) { disabled = true; label = 'სავსეა'; }
-      if (it.armor && player.armor >= it.armor) { disabled = true; label = 'გაქვს'; }
-      if (it.id === 'medkit' && player.hp >= player.maxHp) { disabled = true; label = 'სავსეა'; }
-      if (it.id === 'comp_heal' && (comp.state !== 'up' || comp.hp >= comp.maxHp)) { disabled = true; label = comp.state !== 'up' ? 'დაცემულია' : 'სავსეა'; }
+      if (it.id === 'revive' && player.revive >= 1) { disabled = true; label = 'Owned'; }
+      if (it.id === 'grenade' && player.grenades >= 10) { disabled = true; label = 'Full'; }
+      if (it.id === 'mine' && player.mines >= 8) { disabled = true; label = 'Full'; }
+      if (it.armor && player.armor >= it.armor) { disabled = true; label = 'Owned'; }
+      if (it.id === 'medkit' && player.hp >= player.maxHp) { disabled = true; label = 'Full'; }
+      if (it.id === 'comp_heal' && (comp.state !== 'up' || comp.hp >= comp.maxHp)) { disabled = true; label = comp.state !== 'up' ? 'Downed' : 'Full'; }
       if (it.id === 'comp_up') {
         price = it.price * comp.level;
         disabled = comp.level >= 5 || G.coins < price;
-        if (comp.level >= 5) label = 'მაქს.';
+        if (comp.level >= 5) label = 'Max';
       }
       grid.appendChild(card(it, price, { disabled, label }, () => buyItem(it, price)));
     }
@@ -1670,7 +1746,7 @@ let hurtV = 0;
 function flashHurt(v) { hurtV = Math.min(1, hurtV + v); }
 
 const popups = [];
-function popup(text, x, y, z, color) {
+function popup(text, x, y, z, color, coin) {
   let p = popups.find((q) => q.t <= 0);
   if (!p) {
     if (popups.length > 30) return;
@@ -1680,7 +1756,7 @@ function popup(text, x, y, z, color) {
     p = { el, t: 0, pos: new THREE.Vector3() };
     popups.push(p);
   }
-  p.el.textContent = text;
+  p.el.innerHTML = coin ? `<i class="coin-icon small"></i>${text}` : text;
   p.el.style.color = color;
   p.pos.set(x, y, z);
   p.t = 1;
@@ -1704,11 +1780,11 @@ function updatePopups(dt) {
 function updateHUD(dt) {
   const p = player;
   if (G.phase === 'break') {
-    setText('wave-title', G.wave === 0 ? 'მოემზადე' : 'შესვენება');
-    setText('wave-sub', `ტალღა ${G.wave + 1} იწყება ${Math.ceil(G.breakT)} წამში · [N] ახლავე`);
+    setText('wave-title', G.wave === 0 ? 'Get Ready' : 'Intermission');
+    setText('wave-sub', `Wave ${G.wave + 1} starts in ${Math.ceil(G.breakT)}s · [N] start now`);
   } else {
-    setText('wave-title', `ტალღა ${G.wave}`);
-    setText('wave-sub', `დემონები: ${aliveCount() + G.queue.length}`);
+    setText('wave-title', `Wave ${G.wave}`);
+    setText('wave-sub', `Demons left: ${aliveCount() + G.queue.length}`);
   }
   setText('coin-val', String(G.coins));
   const hpNow = p.state === 'down' ? p.downHp : p.hp;
@@ -1717,19 +1793,19 @@ function updateHUD(dt) {
   setText('hp-val', String(Math.ceil(Math.max(0, hpNow))));
   $('ar-fill').style.width = `${p.maxArmor ? clamp(p.armor / p.maxArmor, 0, 1) * 100 : 0}%`;
   setText('ar-val', String(Math.ceil(p.armor)));
-  setHTML('items', `<span class="chip ${p.grenades ? '' : 'off'}">[G] ყუმბარა ×${p.grenades}</span>`
-    + `<span class="chip ${p.mines ? '' : 'off'}">[F] ნაღმი ×${p.mines}</span>`
-    + `<span class="chip ${p.revive ? 'on' : 'off'}">✚ გამაცოცხლებელი ${p.revive}/1</span>`);
+  setHTML('items', `<span class="chip ${p.grenades ? '' : 'off'}">[G] Grenade ×${p.grenades}</span>`
+    + `<span class="chip ${p.mines ? '' : 'off'}">[F] Mine ×${p.mines}</span>`
+    + `<span class="chip ${p.revive ? 'on' : 'off'}">✚ Self-revive ${p.revive}/1</span>`);
   let b = '';
-  for (const k in p.boosts) if (p.boosts[k] > 0) b += `<span class="chip boost">${BOOST_LABELS[k]} ${Math.ceil(p.boosts[k])}წ</span>`;
+  for (const k in p.boosts) if (p.boosts[k] > 0) b += `<span class="chip boost">${BOOST_LABELS[k]} ${Math.ceil(p.boosts[k])}s</span>`;
   setHTML('boosts', b);
   setHTML('companion-box', comp.state === 'up'
-    ? `<span class="name">${COMPANION.name}</span> · დონე ${comp.level} · ${Math.ceil(comp.hp)}/${Math.round(comp.maxHp)}`
-    : `<span class="down">${COMPANION.name} დაეცა — გააცოცხლე [E]</span>`);
+    ? `<span class="name">${COMPANION.name}</span> · Lv ${comp.level} · ${Math.ceil(comp.hp)}/${Math.round(comp.maxHp)}`
+    : `<span class="down">${COMPANION.name} is down — revive her [E]</span>`);
 
   const s = curSlot();
   const w = WEAPON_BY_ID[s.id];
-  setText('weapon-name', p.state === 'down' ? `${w.name} (დაცემული)` : w.name);
+  setText('weapon-name', p.state === 'down' ? `${w.name} (downed)` : w.name);
   setText('ammo-cur', String(s.ammo));
   setText('ammo-max', s.reserve === Infinity ? '∞' : String(s.reserve));
   $('st-fill').style.width = `${p.stamina}%`;
@@ -1747,13 +1823,13 @@ function updateHUD(dt) {
   const dc = Math.hypot(comp.pos.x - p.pos.x, comp.pos.z - p.pos.z);
   if (p.state === 'up' && comp.state === 'down' && dc < 1.8) {
     prompt = input.keys.KeyE
-      ? `${COMPANION.name} — გაცოცხლება...<div class="progress" style="width:${(comp.reviveProg / COMPANION.reviveTime) * 100}%"></div>`
-      : `დააჭირე და გააჩერე [E] — ${COMPANION.name}ს გაცოცხლება`;
+      ? `Reviving ${COMPANION.name}...<div class="progress" style="width:${(comp.reviveProg / COMPANION.reviveTime) * 100}%"></div>`
+      : `Hold [E] to revive ${COMPANION.name}`;
   } else if (p.state === 'up' && !G.shopOpen) {
     const k = nearestKiosk();
     if (k) prompt = `[E] ${k.name}`;
   }
-  if (!prompt && G.started && !G.locked && !G.shopOpen && !G.paused && !DEBUG_NOLOCK) prompt = 'დააწკაპუნე ეკრანზე — მაუსით ყურება';
+  if (!prompt && G.started && !G.locked && !G.shopOpen && !G.paused && !DEBUG_NOLOCK) prompt = 'Click the screen to look around';
   const pe = $('prompt');
   if (prompt) { pe.style.display = 'block'; setHTML('prompt', prompt); } else pe.style.display = 'none';
 
@@ -1876,6 +1952,7 @@ function step(dt) {
   for (const e of G.enemies) if (e.active) e.update(dt);
   updateProjectiles(dt);
   updatePowerups(dt);
+  updateCoins(dt);
 
   if (comp.state === 'down' && player.state === 'up' && input.keys.KeyE
     && Math.hypot(comp.pos.x - player.pos.x, comp.pos.z - player.pos.z) < 1.8) {
@@ -1886,7 +1963,7 @@ function step(dt) {
       comp.reviveProg = 0;
       sfx.revive();
       fx.flash(_v.copy(comp.pos).setY(comp.pos.y + 1), 0xff6040, 3, 0.4);
-      announce(`${COMPANION.name} დაბრუნდა!`, '', 1.4);
+      announce(`${COMPANION.name} is back!`, '', 1.4);
     }
   } else comp.reviveProg = 0;
 
@@ -1933,8 +2010,8 @@ function gameOver() {
   $('downed').classList.add('hidden');
   let best = 0;
   try { best = Number(localStorage.getItem('hw-best') || 0); if (G.wave > best) localStorage.setItem('hw-best', String(G.wave)); } catch (e) { /* storage unavailable */ }
-  $('go-stats').innerHTML = `გადარჩი <b>${Math.max(0, G.wave - 1)}</b> ტალღას · მიაღწიე ტალღა <b>${G.wave}</b>-ს<br>მოკლული დემონები: <b>${G.kills}</b><br>`
-    + `${G.wave > best ? 'ახალი რეკორდი!' : `რეკორდი: ტალღა ${best}`}`;
+  $('go-stats').innerHTML = `You survived <b>${Math.max(0, G.wave - 1)}</b> waves · reached wave <b>${G.wave}</b><br>Demons killed: <b>${G.kills}</b><br>`
+    + `${G.wave > best ? 'NEW RECORD!' : `Best: wave ${best}`}`;
   $('gameover').classList.remove('hidden');
   $('hud').classList.add('hidden');
 }
@@ -1952,6 +2029,9 @@ function resetGame() {
     reloadT: 0, fireCd: 0, grenades: 2, mines: 0, revive: 0, boosts: { dmg: 0, rate: 0, speed: 0, regen: 0, insta: 0, double: 0 },
     ads: 0, bloom: 0, stamina: 100, exhausted: false, knifeCd: 0, lastHurt: -99,
   });
+  G.ws = null;
+  scTimers.forEach(clearTimeout);
+  $('stage-clear').classList.remove('show');
   for (const pu of G.powerups) scene.remove(pu.g);
   G.powerups.length = 0;
   setBlackout(false);
@@ -1959,7 +2039,7 @@ function resetGame() {
   comp.tilt.rotation.x = 0;
   placeCharacters();
   startBreak(FIRST_BREAK);
-  announce('მოემზადე', 'იყიდე იარაღი — დემონები მალე მოვლენ', 3);
+  announce('GET READY', 'Buy weapons — the demons are coming', 3);
   $('downed').classList.add('hidden');
   $('gameover').classList.add('hidden');
   $('hud').classList.remove('hidden');
@@ -2042,9 +2122,13 @@ $('shop-close').addEventListener('click', closeShop);
 $('shop').addEventListener('mousedown', (e) => { if (e.target === $('shop')) closeShop(); });
 $('resume').addEventListener('click', () => { setPaused(false); lockPointer(); });
 $('restart').addEventListener('click', () => { sfx.init(); resetGame(); lockPointer(); });
+$('pause-restart').addEventListener('click', () => { setPaused(false); resetGame(); lockPointer(); });
 $('play').addEventListener('click', () => {
   sfx.init();
   $('menu').classList.add('hidden');
+  const bg = $('bgvideo');
+  bg.pause();
+  bg.classList.add('off');
   G.started = true;
   resetGame();
   lockPointer();
@@ -2071,10 +2155,12 @@ if (DEBUG) {
 (async function boot() {
   try {
     const best = Number(localStorage.getItem('hw-best') || 0);
-    if (best) $('best').textContent = `რეკორდი: ტალღა ${best}`;
+    if (best) $('best').textContent = `Best: wave ${best}`;
   } catch (e) { /* storage unavailable */ }
   try {
     await loadAssets();
+    coinTex = await new THREE.TextureLoader().loadAsync(`${BASE}media/coin.webp`).catch(() => null);
+    if (coinTex) coinTex.colorSpace = THREE.SRGBColorSpace;
     for (const k of ['huggy', 'butcher', 'siren', 'nurse', 'dog']) prepModel(k);
     await new Promise((r) => setTimeout(r, 30));
     buildWorld();
@@ -2098,12 +2184,12 @@ if (DEBUG) {
     renderer.render(scene, camera);
     for (const e of G.enemies) e.root.visible = false;
     $('load-fill').style.width = '100%';
-    $('load-status').textContent = 'მზადაა';
+    $('load-status').textContent = 'Ready';
     $('play').disabled = false;
     window.__ready = true;
   } catch (err) {
     console.error(err);
-    $('load-status').textContent = `ჩატვირთვის შეცდომა: ${err.message || err}`;
+    $('load-status').textContent = `Loading error: ${err.message || err}`;
   }
 })();
 requestAnimationFrame(frame);

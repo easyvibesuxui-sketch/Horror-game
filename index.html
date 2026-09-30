@@ -1,15 +1,20 @@
 <!doctype html>
-<html lang="ka">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ჯოჯოხეთის ტალღები</title>
+  <title>Waves of Hell</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Georgian:wght@400;600;800;900&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Creepster&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="./src/style.css" />
+  <link rel="icon" type="image/png" href="./media/coin-64.png" />
 </head>
 <body>
+  <video id="bgvideo" poster="./media/preloader.jpg" autoplay muted loop playsinline preload="auto">
+    <source src="./media/preloader.webm" type="video/webm" />
+    <source src="./media/preloader.mp4" type="video/mp4" />
+  </video>
   <canvas id="game"></canvas>
 
   <div id="vignette"></div>
@@ -22,7 +27,7 @@
 
   <div id="hud" class="hidden">
     <div id="wave-box">
-      <div id="wave-title">ტალღა 1</div>
+      <div id="wave-title">Wave 1</div>
       <div id="wave-sub"></div>
     </div>
     <div id="top-right">
@@ -30,9 +35,9 @@
       <canvas id="minimap" width="200" height="176"></canvas>
     </div>
     <div id="vitals">
-      <div class="bar"><div class="bar-label">სიცოცხლე</div><div class="bar-track"><div id="hp-fill" class="bar-fill hp"></div></div><span id="hp-val">100</span></div>
-      <div class="bar"><div class="bar-label">ბრონი</div><div class="bar-track"><div id="ar-fill" class="bar-fill ar"></div></div><span id="ar-val">0</span></div>
-      <div class="bar thin"><div class="bar-label">ენერგია</div><div class="bar-track"><div id="st-fill" class="bar-fill st"></div></div><span></span></div>
+      <div class="bar"><div class="bar-label">Health</div><div class="bar-track"><div id="hp-fill" class="bar-fill hp"></div></div><span id="hp-val">100</span></div>
+      <div class="bar"><div class="bar-label">Armor</div><div class="bar-track"><div id="ar-fill" class="bar-fill ar"></div></div><span id="ar-val">0</span></div>
+      <div class="bar thin"><div class="bar-label">Stamina</div><div class="bar-track"><div id="st-fill" class="bar-fill st"></div></div><span></span></div>
       <div id="items"></div>
       <div id="boosts"></div>
     </div>
@@ -45,9 +50,14 @@
     </div>
     <div id="prompt"></div>
     <div id="announce"><div id="announce-big"></div><div id="announce-small"></div></div>
+    <div id="stage-clear">
+      <div class="sc-title" id="sc-title">WAVE 1 CLEARED</div>
+      <div id="sc-lines"></div>
+      <div class="sc-total"><span>BONUS CREDITS</span><b><span class="coin-icon"></span><span id="sc-total">0</span></b></div>
+    </div>
     <div id="downed" class="hidden">
-      <div class="downed-title">დაეცი!</div>
-      <div class="downed-sub">გაუძელი — ისროლე პისტოლეტით</div>
+      <div class="downed-title">YOU'RE DOWN!</div>
+      <div class="downed-sub">Hold on — fight back with your pistol</div>
       <div id="downed-timer">10</div>
       <div class="bar-track wide"><div id="downed-fill" class="bar-fill hp"></div></div>
     </div>
@@ -57,11 +67,11 @@
     <div class="shop-panel">
       <div class="shop-head">
         <div>
-          <div id="shop-title">მაღაზია</div>
+          <div id="shop-title">Shop</div>
           <div id="shop-note"></div>
         </div>
         <div class="shop-coins"><span class="coin-icon"></span><b id="shop-coins">0</b></div>
-        <button id="shop-close" title="დახურვა (E / Esc)">✕</button>
+        <button id="shop-close" title="Close (E / Esc)">✕</button>
       </div>
       <div id="shop-body"></div>
     </div>
@@ -69,23 +79,24 @@
 
   <div id="menu" class="screen">
     <div class="screen-inner">
-      <div class="title">ჯოჯოხეთის<br />ტალღები</div>
-      <div class="subtitle">დემონები მოდიან. ისინი არასდროს ჩერდებიან.</div>
-      <div id="load-status">იტვირთება...</div>
+      <div class="title">Waves<br />of Hell</div>
+      <div class="subtitle">The demons are coming. They never stop.</div>
+      <div id="load-status">Loading...</div>
       <div id="load-track"><div id="load-fill"></div></div>
-      <button id="play" class="big-btn" disabled>თამაშის დაწყება</button>
+      <button id="play" class="big-btn" disabled>Play</button>
       <div class="controls">
-        <div><kbd>დააწკაპუნე</kbd> მაუსის დაჭერა · <kbd>მაუსი</kbd> ყურება · <kbd>LMB</kbd> სროლა · <kbd>RMB</kbd> დამიზნება/სნაიპერის ლინზა</div>
-        <div><kbd>W A S D</kbd> სიარული · <kbd>Shift</kbd> სირბილი (ენერგია) · <kbd>V</kbd> დანა</div>
-        <div><kbd>R</kbd> გადატენვა · <kbd>1 2 3</kbd> / <kbd>ბორბალი</kbd> / <kbd>Q</kbd> იარაღის ცვლა</div>
-        <div><kbd>G</kbd> ყუმბარა · <kbd>F</kbd> ნაღმი</div>
-        <div><kbd>E</kbd> მაღაზია / დამხმარის გაცოცხლება (დააჭირე და გააჩერე)</div>
-        <div><kbd>N</kbd> შემდეგი ტალღის დაწყება · <kbd>Esc</kbd> პაუზა · <kbd>M</kbd> ხმა</div>
+        <div><kbd>Click</kbd> capture mouse</div><div><kbd>Mouse</kbd> look</div>
+        <div><kbd>LMB</kbd> shoot</div><div><kbd>RMB</kbd> aim / sniper scope</div>
+        <div><kbd>W A S D</kbd> move</div><div><kbd>Shift</kbd> sprint (stamina)</div>
+        <div><kbd>R</kbd> reload</div><div><kbd>V</kbd> knife</div>
+        <div><kbd>1 2 3</kbd> <kbd>Wheel</kbd> <kbd>Q</kbd> switch weapon</div><div><kbd>G</kbd> grenade · <kbd>F</kbd> mine</div>
+        <div><kbd>E</kbd> shop / hold to revive dog</div><div><kbd>N</kbd> start next wave</div>
+        <div><kbd>Esc</kbd> <kbd>P</kbd> pause</div><div><kbd>M</kbd> mute</div>
       </div>
       <div class="legend">
-        <span><i class="dot easy"></i>Easy — ჰაგი, მედდა</span>
-        <span><i class="dot fast"></i>Fast — ქრომი, წითელი ჰაგი</span>
-        <span><i class="dot brute"></i>Brute — ყასაბი, სირენა</span>
+        <span><i class="dot easy"></i>Easy — Huggy, Nurse</span>
+        <span><i class="dot fast"></i>Fast — Chromie, Red Huggy</span>
+        <span><i class="dot brute"></i>Brute — Butcher, Siren Head</span>
       </div>
       <div id="best"></div>
     </div>
@@ -93,17 +104,30 @@
 
   <div id="pause" class="screen hidden">
     <div class="screen-inner">
-      <div class="title small">პაუზა</div>
-      <button id="resume" class="big-btn">გაგრძელება</button>
-      <label class="sens">მაუსის მგრძნობელობა <input id="sens" type="range" min="6" max="60" step="1" /></label>
+      <div class="title small">Paused</div>
+      <div class="btn-row">
+        <button id="resume" class="big-btn">Resume</button>
+        <button id="pause-restart" class="big-btn ghost">Restart</button>
+      </div>
+      <label class="sens">Mouse sensitivity <input id="sens" type="range" min="6" max="60" step="1" /></label>
+      <div class="controls-title">Controls</div>
+      <div class="controls">
+        <div><kbd>Click</kbd> capture mouse</div><div><kbd>Mouse</kbd> look</div>
+        <div><kbd>LMB</kbd> shoot</div><div><kbd>RMB</kbd> aim / sniper scope</div>
+        <div><kbd>W A S D</kbd> move</div><div><kbd>Shift</kbd> sprint (stamina)</div>
+        <div><kbd>R</kbd> reload</div><div><kbd>V</kbd> knife</div>
+        <div><kbd>1 2 3</kbd> <kbd>Wheel</kbd> <kbd>Q</kbd> switch weapon</div><div><kbd>G</kbd> grenade · <kbd>F</kbd> mine</div>
+        <div><kbd>E</kbd> shop / hold to revive dog</div><div><kbd>N</kbd> start next wave</div>
+        <div><kbd>Esc</kbd> <kbd>P</kbd> pause</div><div><kbd>M</kbd> mute</div>
+      </div>
     </div>
   </div>
 
   <div id="gameover" class="screen hidden">
     <div class="screen-inner">
-      <div class="title">შენ მოკვდი</div>
+      <div class="title">You Died</div>
       <div id="go-stats"></div>
-      <button id="restart" class="big-btn">თავიდან</button>
+      <button id="restart" class="big-btn">Play Again</button>
     </div>
   </div>
 
