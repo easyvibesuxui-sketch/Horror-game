@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="ka">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ჯოჯოხეთის ტალღები</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Georgian:wght@400;600;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./src/style.css" />
+</head>
+<body>
+  <canvas id="game"></canvas>
+
+  <div id="vignette"></div>
+  <div id="hurt"></div>
+  <div id="popups"></div>
+  <div id="crosshair"><i></i><i></i><i></i><i></i></div>
+
+  <div id="hud" class="hidden">
+    <div id="wave-box">
+      <div id="wave-title">ტალღა 1</div>
+      <div id="wave-sub"></div>
+    </div>
+    <div id="top-right">
+      <div id="coins"><span class="coin-icon"></span><b id="coin-val">0</b></div>
+      <canvas id="minimap" width="200" height="176"></canvas>
+    </div>
+    <div id="vitals">
+      <div class="bar"><div class="bar-label">სიცოცხლე</div><div class="bar-track"><div id="hp-fill" class="bar-fill hp"></div></div><span id="hp-val">100</span></div>
+      <div class="bar"><div class="bar-label">ბრონი</div><div class="bar-track"><div id="ar-fill" class="bar-fill ar"></div></div><span id="ar-val">0</span></div>
+      <div id="items"></div>
+      <div id="boosts"></div>
+    </div>
+    <div id="companion-box"></div>
+    <div id="weapon-box">
+      <div id="weapon-name">M9</div>
+      <div id="ammo"><b id="ammo-cur">15</b> / <span id="ammo-max">15</span></div>
+      <div id="reload-track"><div id="reload-fill"></div></div>
+      <div id="slots"></div>
+    </div>
+    <div id="prompt"></div>
+    <div id="announce"><div id="announce-big"></div><div id="announce-small"></div></div>
+    <div id="downed" class="hidden">
+      <div class="downed-title">დაეცი!</div>
+      <div class="downed-sub">გაუძელი — ისროლე პისტოლეტით</div>
+      <div id="downed-timer">10</div>
+      <div class="bar-track wide"><div id="downed-fill" class="bar-fill hp"></div></div>
+    </div>
+  </div>
+
+  <div id="shop" class="hidden">
+    <div class="shop-panel">
+      <div class="shop-head">
+        <div>
+          <div id="shop-title">მაღაზია</div>
+          <div id="shop-note"></div>
+        </div>
+        <div class="shop-coins"><span class="coin-icon"></span><b id="shop-coins">0</b></div>
+        <button id="shop-close" title="დახურვა (E / Esc)">✕</button>
+      </div>
+      <div id="shop-body"></div>
+    </div>
+  </div>
+
+  <div id="menu" class="screen">
+    <div class="screen-inner">
+      <div class="title">ჯოჯოხეთის<br />ტალღები</div>
+      <div class="subtitle">დემონები მოდიან. ისინი არასდროს ჩერდებიან.</div>
+      <div id="load-status">იტვირთება...</div>
+      <div id="load-track"><div id="load-fill"></div></div>
+      <button id="play" class="big-btn" disabled>თამაშის დაწყება</button>
+      <div class="controls">
+        <div><kbd>W A S D</kbd> სიარული</div>
+        <div><kbd>მაუსი</kbd> დამიზნება · <kbd>LMB</kbd> სროლა</div>
+        <div><kbd>R</kbd> გადატენვა · <kbd>1 2 3</kbd> / <kbd>Q</kbd> იარაღის ცვლა</div>
+        <div><kbd>G</kbd> ყუმბარა · <kbd>F</kbd> ნაღმი</div>
+        <div><kbd>E</kbd> მაღაზია / დამხმარის გაცოცხლება (დააჭირე და გააჩერე)</div>
+        <div><kbd>N</kbd> შემდეგი ტალღის დაწყება · <kbd>ბორბალი</kbd> კამერის ზუმი · <kbd>P</kbd> პაუზა · <kbd>M</kbd> ხმა</div>
+      </div>
+      <div class="legend">
+        <span><i class="dot easy"></i>Easy — ჩვეულებრივი</span>
+        <span><i class="dot fast"></i>Fast — სწრაფი, სუსტი</span>
+        <span><i class="dot brute"></i>Brute — ძლიერი, ნელი</span>
+      </div>
+      <div id="best"></div>
+    </div>
+  </div>
+
+  <div id="pause" class="screen hidden">
+    <div class="screen-inner">
+      <div class="title small">პაუზა</div>
+      <button id="resume" class="big-btn">გაგრძელება</button>
+    </div>
+  </div>
+
+  <div id="gameover" class="screen hidden">
+    <div class="screen-inner">
+      <div class="title">შენ მოკვდი</div>
+      <div id="go-stats"></div>
+      <button id="restart" class="big-btn">თავიდან</button>
+    </div>
+  </div>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
