@@ -178,6 +178,15 @@ export class Sfx {
     [330, 440, 554, 660, 880].forEach((f, i) => this.tone({ type: 'sine', f0: f, dur: 0.3, gain: 0.15, delay: i * 0.07 }));
   }
   throwIt() { if (this.ctx) this.noiseHit({ dur: 0.2, freq: 800, freqEnd: 2500, type: 'bandpass', gain: 0.2, attack: 0.04 }); }
+  step(heavy = 1) {
+    if (!this.ok('step', 180)) return;
+    this.noiseHit({ dur: 0.09, freq: 260 * heavy, type: 'lowpass', gain: 0.12 });
+  }
+  slash() {
+    if (!this.ok('slash', 120)) return;
+    this.noiseHit({ dur: 0.16, freq: 3000, freqEnd: 900, type: 'bandpass', q: 2, gain: 0.25, attack: 0.02 });
+  }
+  hitmark(head) { if (this.ok('hm', 60)) this.tone({ type: 'square', f0: head ? 1800 : 1200, dur: 0.035, gain: head ? 0.09 : 0.05 }); }
   spawn() { if (this.ok('spawn', 250)) this.tone({ type: 'sine', f0: 50, f1: 35, dur: 0.8, gain: 0.25, attack: 0.1 }); }
 
   startAmbience() {

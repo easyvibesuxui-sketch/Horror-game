@@ -53,14 +53,34 @@ export const WEAPONS = [
 ];
 export const WEAPON_BY_ID = Object.fromEntries(WEAPONS.map((w) => [w.id, w]));
 
+// Each demon class has several models; one is picked at random per spawn.
 export const ENEMY_TYPES = {
-  easy: { key: 'easy', label: 'Easy', model: 'huggy', height: 2.2, hp: 70, speed: 2.3, dmg: 12, atkRate: 1.1, reach: 0.75, radius: 0.42, coins: 10, anim: 1.0 },
-  fast: { key: 'fast', label: 'Fast', model: 'huggy', height: 1.6, hp: 34, speed: 5.0, dmg: 7, atkRate: 0.6, reach: 0.6, radius: 0.34, coins: 15, anim: 2.3, tint: [1.0, 0.25, 0.22] },
-  brute: { key: 'brute', label: 'Brute', model: 'butcher', height: 2.5, hp: 520, speed: 1.3, dmg: 32, atkRate: 1.6, reach: 1.0, radius: 0.62, coins: 45 },
+  easy: {
+    key: 'easy', label: 'Easy', hp: 70, speed: 2.3, dmg: 12, atkRate: 1.1, reach: 0.75, radius: 0.42, coins: 10,
+    variants: [
+      { model: 'huggy', height: 2.2, anim: 1.0 },
+      { model: 'nurse', height: 1.75 },
+    ],
+  },
+  fast: {
+    key: 'fast', label: 'Fast', hp: 34, speed: 5.0, dmg: 7, atkRate: 0.6, reach: 0.6, radius: 0.34, coins: 15,
+    variants: [
+      { model: 'chromie', height: 1.25 },
+      { model: 'huggy', height: 1.6, anim: 2.3, tint: [1.0, 0.25, 0.22] },
+    ],
+  },
+  brute: {
+    key: 'brute', label: 'Brute', hp: 520, speed: 1.3, dmg: 32, atkRate: 1.6, reach: 1.0, radius: 0.62, coins: 45,
+    variants: [
+      { model: 'butcher', height: 2.5 },
+      { model: 'siren', height: 2.7, anim: 0.55 },
+    ],
+  },
 };
 
-export const PLAYER = { hp: 100, speed: 4.2, radius: 0.28, downedTime: 10, downedHp: 80 };
-export const COMPANION = { hp: 150, speed: 4.0, dmg: 20, rpm: 400, range: 14, reviveTime: 2.5 };
+export const PLAYER = { hp: 100, speed: 4.2, radius: 0.3, eye: 1.62, downedTime: 10, downedHp: 80 };
+// The black dog fights up close with her blades.
+export const COMPANION = { name: 'შავი ძაღლი', hp: 170, speed: 4.8, dmg: 34, atkRate: 0.75, reach: 0.95, seek: 9, leash: 11, reviveTime: 2.5 };
 
 // Three shop points in different parts of the station.
 export const SHOPS = [
@@ -84,8 +104,8 @@ export const MED_ITEMS = [
   { id: 'boost_rate', name: 'სწრაფი სროლა', desc: '30 წამი +65% სროლის სიჩქარე', price: 500, boost: 'rate', time: 30 },
   { id: 'boost_speed', name: 'სისწრაფე', desc: '30 წამი +40% სიარული', price: 300, boost: 'speed', time: 30 },
   { id: 'boost_regen', name: 'რეგენერაცია', desc: '45 წამი +6 სიცოცხლე/წმ', price: 400, boost: 'regen', time: 45 },
-  { id: 'comp_heal', name: 'დამხმარის მკურნალობა', desc: 'ქრომის სრული სიცოცხლე', price: 150 },
-  { id: 'comp_up', name: 'დამხმარის გაძლიერება', desc: '+ზიანი, +სიცოცხლე, +სროლა (მაქს. 5 დონე)', price: 800 },
+  { id: 'comp_heal', name: 'დამხმარის მკურნალობა', desc: 'შავი ძაღლის სრული სიცოცხლე', price: 150 },
+  { id: 'comp_up', name: 'დამხმარის გაძლიერება', desc: '+ზიანი, +სიცოცხლე, +სისწრაფე (მაქს. 5 დონე)', price: 800 },
 ];
 
 export const BOOST_LABELS = { dmg: '×2 ზიანი', rate: 'სწრაფი სროლა', speed: 'სისწრაფე', regen: 'რეგენი' };

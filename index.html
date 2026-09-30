@@ -15,7 +15,8 @@
   <div id="vignette"></div>
   <div id="hurt"></div>
   <div id="popups"></div>
-  <div id="crosshair"><i></i><i></i><i></i><i></i></div>
+  <div id="crosshair"><i></i><i></i><i></i><i></i><b></b></div>
+  <div id="dmg-dir"><span></span></div>
 
   <div id="hud" class="hidden">
     <div id="wave-box">
@@ -71,17 +72,17 @@
       <div id="load-track"><div id="load-fill"></div></div>
       <button id="play" class="big-btn" disabled>თამაშის დაწყება</button>
       <div class="controls">
-        <div><kbd>W A S D</kbd> სიარული</div>
-        <div><kbd>მაუსი</kbd> დამიზნება · <kbd>LMB</kbd> სროლა</div>
-        <div><kbd>R</kbd> გადატენვა · <kbd>1 2 3</kbd> / <kbd>Q</kbd> იარაღის ცვლა</div>
+        <div><kbd>დააწკაპუნე</kbd> მაუსის დაჭერა · <kbd>მაუსი</kbd> ყურება და დამიზნება · <kbd>LMB</kbd> სროლა</div>
+        <div><kbd>W A S D</kbd> სიარული · <kbd>Shift</kbd> სირბილი</div>
+        <div><kbd>R</kbd> გადატენვა · <kbd>1 2 3</kbd> / <kbd>ბორბალი</kbd> / <kbd>Q</kbd> იარაღის ცვლა</div>
         <div><kbd>G</kbd> ყუმბარა · <kbd>F</kbd> ნაღმი</div>
         <div><kbd>E</kbd> მაღაზია / დამხმარის გაცოცხლება (დააჭირე და გააჩერე)</div>
-        <div><kbd>N</kbd> შემდეგი ტალღის დაწყება · <kbd>ბორბალი</kbd> კამერის ზუმი · <kbd>P</kbd> პაუზა · <kbd>M</kbd> ხმა</div>
+        <div><kbd>N</kbd> შემდეგი ტალღის დაწყება · <kbd>Esc</kbd> პაუზა · <kbd>M</kbd> ხმა</div>
       </div>
       <div class="legend">
-        <span><i class="dot easy"></i>Easy — ჩვეულებრივი</span>
-        <span><i class="dot fast"></i>Fast — სწრაფი, სუსტი</span>
-        <span><i class="dot brute"></i>Brute — ძლიერი, ნელი</span>
+        <span><i class="dot easy"></i>Easy — ჰაგი, მედდა</span>
+        <span><i class="dot fast"></i>Fast — ქრომი, წითელი ჰაგი</span>
+        <span><i class="dot brute"></i>Brute — ყასაბი, სირენა</span>
       </div>
       <div id="best"></div>
     </div>
@@ -91,6 +92,7 @@
     <div class="screen-inner">
       <div class="title small">პაუზა</div>
       <button id="resume" class="big-btn">გაგრძელება</button>
+      <label class="sens">მაუსის მგრძნობელობა <input id="sens" type="range" min="6" max="60" step="1" /></label>
     </div>
   </div>
 

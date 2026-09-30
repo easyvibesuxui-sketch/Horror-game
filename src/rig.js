@@ -10,7 +10,7 @@ const _c = new THREE.Vector3();
 // Builds a gnome character (the Chromie model) wearing a tactical suit.
 // The model ships without clothes or animations, so the suit is drawn in a
 // shader (everything below the neck) and all motion is procedural.
-export function makeGnome(srcScene, { suit, trim, height = 1.2 }) {
+export function makeGnome(srcScene, { suit, trim, height = 1.2, headTint = [1, 1, 1], glow = 0.28 }) {
   const model = SkeletonUtils.clone(srcScene);
   const remove = [];
   model.traverse((o) => {
@@ -24,6 +24,7 @@ export function makeGnome(srcScene, { suit, trim, height = 1.2 }) {
     uWaist: { value: 0.3 },
     uSuit: { value: new THREE.Color(suit) },
     uTrim: { value: new THREE.Color(trim) },
+    uHeadTint: { value: new THREE.Color(...headTint) },
   };
 
   model.traverse((o) => {
@@ -33,7 +34,7 @@ export function makeGnome(srcScene, { suit, trim, height = 1.2 }) {
     const tex = old.map || old.emissiveMap;
     const hair = /Hair/i.test(old.name);
     const m = new THREE.MeshStandardMaterial({
-      map: tex, emissiveMap: tex, emissive: new THREE.Color(0.28, 0.28, 0.28),
+      map: tex, emissiveMap: tex, emissive: new THREE.Color(glow * headTint[0], glow * headTint[1], glow * headTint[2]),
       roughness: 0.8, metalness: 0.05, side: THREE.DoubleSide,
     });
     if (!hair) {
@@ -43,13 +44,13 @@ export function makeGnome(srcScene, { suit, trim, height = 1.2 }) {
           '#include <project_vertex>',
           '#include <project_vertex>\n  vWPos = (modelMatrix * vec4(transformed, 1.0)).xyz;',
         );
-        sh.fragmentShader = 'uniform vec3 uNeck; uniform vec3 uUp; uniform float uWaist; uniform vec3 uSuit; uniform vec3 uTrim;\nvarying vec3 vWPos;\n'
+        sh.fragmentShader = 'uniform vec3 uNeck; uniform vec3 uUp; uniform float uWaist; uniform vec3 uSuit; uniform vec3 uTrim; uniform vec3 uHeadTint;\nvarying vec3 vWPos;\n'
           + sh.fragmentShader
             .replace('#include <map_fragment>', `#include <map_fragment>
   float hd = dot(vWPos - uNeck, uUp);
   float suitMask = step(hd, 0.0);
   float panel = 0.82 + 0.18 * step(0.5, fract((vWPos.x + vWPos.z) * 6.0 + hd * 3.0));
-  diffuseColor.rgb = mix(diffuseColor.rgb, uSuit * panel, suitMask);`)
+  diffuseColor.rgb = mix(diffuseColor.rgb * uHeadTint, uSuit * panel, suitMask);`)
             .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
   totalEmissiveRadiance *= (1.0 - suitMask);
   float collar = suitMask * (1.0 - smoothstep(0.0, 0.03, -hd));
@@ -57,6 +58,8 @@ export function makeGnome(srcScene, { suit, trim, height = 1.2 }) {
   totalEmissiveRadiance += uTrim * (collar + belt) * 2.2;`);
       };
       m.customProgramCacheKey = () => 'gnome-suit';
+    } else {
+      m.color.setRGB(...headTint);
     }
     o.material = m;
   });
@@ -73,18 +76,32 @@ export function makeGnome(srcScene, { suit, trim, height = 1.2 }) {
   const root = new THREE.Group(); // position + facing
   root.add(tilt);
 
-  return { root, tilt, model, rig: new GnomeRig(model), uniforms };
+  return { root, tilt, model, rig: new Rig(model, GNOME_BONES), uniforms };
 }
 
-export class GnomeRig {
-  constructor(model) {
+export const GNOME_BONES = {
+  lThigh: 'L_Thigh', rThigh: 'R_Thigh', lCalf: 'L_Calf', rCalf: 'R_Calf', spine: 'Spine_1',
+  rUpper: 'R_Bicep', rFore: 'R_Elbow', rHand: 'R_Hand', lUpper: 'L_Bicep', lFore: 'L_Elbow', lHand: 'L_Hand',
+  neck: 'Neck_Lower', pelvis: 'Pelvis',
+};
+// Source-engine (ValveBiped) skeleton used by the black dog model.
+export const VALVE_BONES = {
+  lThigh: 'ValveBipedBip01_L_Thigh', rThigh: 'ValveBipedBip01_R_Thigh', lCalf: 'ValveBipedBip01_L_Calf', rCalf: 'ValveBipedBip01_R_Calf',
+  spine: 'ValveBipedBip01_Spine1', rUpper: 'ValveBipedBip01_R_UpperArm', rFore: 'ValveBipedBip01_R_Forearm', rHand: 'ValveBipedBip01_R_Hand',
+  lUpper: 'ValveBipedBip01_L_UpperArm', lFore: 'ValveBipedBip01_L_Forearm', lHand: 'ValveBipedBip01_L_Hand',
+  neck: 'ValveBipedBip01_Neck1', pelvis: 'ValveBipedBip01_Pelvis',
+};
+
+// Procedural animation for skinned models that ship without animations.
+export class Rig {
+  constructor(model, names) {
+    const all = {};
+    model.traverse((o) => { if (o.isBone) all[o.name.replace(/_\d+$/, '')] = o; });
     this.b = {};
-    model.traverse((o) => {
-      if (o.isBone) this.b[o.name.replace(/_\d+$/, '')] = o;
-    });
+    for (const k in names) this.b[k] = all[names[k]];
     this.rest = [];
-    for (const k in this.b) this.rest.push([this.b[k], this.b[k].quaternion.clone()]);
-    this.phase = 0;
+    for (const k in this.b) if (this.b[k]) this.rest.push([this.b[k], this.b[k].quaternion.clone()]);
+    this.phase = Math.random() * 6;
     this.recoil = 0;
   }
 
@@ -114,57 +131,47 @@ export class GnomeRig {
     bone.quaternion.copy(_q2.multiply(_q));
   }
 
-  // speed: m/s, yaw: facing, aimDir: horizontal unit vector, state: 'up'|'down'|'dead'
-  update(dt, speed, yaw, aimDir, state, time) {
+  // state: 'up' | 'dead'. armsDir: world direction the arms reach toward (null = hang).
+  // swing: 0..1 attack swing progress (arms go from raised to slashing down).
+  update(dt, speed, yaw, armsDir, state, time, swing = 0) {
     const B = this.b;
     this.reset();
-    const right = _a.set(Math.cos(yaw), 0, -Math.sin(yaw)).clone();
+    const right = new THREE.Vector3(Math.cos(yaw), 0, -Math.sin(yaw));
     const up = new THREE.Vector3(0, 1, 0);
-    this.recoil = Math.max(0, this.recoil - dt * 8);
-
-    if (state === 'up') {
-      const amt = Math.min(1, speed / 2.5);
-      this.phase += dt * (4 + speed * 2.2);
-      const sw = Math.sin(this.phase) * 0.7 * amt;
-      this.rotWorld(B.L_Thigh || B.L_Leg, right, -sw);
-      this.rotWorld(B.R_Thigh || B.R_Leg, right, sw);
-      this.rotWorld(B.L_Calf || B.L_Knee, right, Math.max(0, Math.cos(this.phase)) * 0.9 * amt);
-      this.rotWorld(B.R_Calf || B.R_Knee, right, Math.max(0, -Math.cos(this.phase)) * 0.9 * amt);
-      // body bob + breathing
-      this.rotWorld(B['Spine_1'], right, 0.12 * amt + Math.sin(time * 2) * 0.02);
-    } else if (state === 'down') {
-      // prop the upper body up a little so the gun can point at enemies
-      const fwd = new THREE.Vector3(Math.sin(yaw), 0, Math.cos(yaw));
-      this.rotWorld(B['Spine_1'], right, -0.5);
-      this.rotWorld(B.L_Thigh || B.L_Leg, fwd, 0.25);
-      this.rotWorld(B.R_Thigh || B.R_Leg, fwd, -0.25);
+    if (state === 'dead') {
+      this.rotWorld(B.rUpper, right, 0.8);
+      this.rotWorld(B.lUpper, right, -0.6);
+      return;
     }
-
-    if (state !== 'dead' && aimDir) {
-      const d = aimDir.clone();
-      const kick = this.recoil * 0.25;
-      const rUp = d.clone().multiplyScalar(0.94).addScaledVector(up, -0.12 + kick).addScaledVector(right, -0.12).normalize();
-      this.aim(B.R_Bicep, B.R_Elbow, rUp);
-      this.aim(B.R_Elbow, B.R_Hand, d.clone().addScaledVector(up, kick).normalize());
-      const lUp = d.clone().multiplyScalar(0.8).addScaledVector(right, 0.45).addScaledVector(up, -0.15).normalize();
-      this.aim(B.L_Bicep, B.L_Elbow, lUp);
-      this.aim(B.L_Elbow, B.L_Hand, d.clone().addScaledVector(right, 0.75).normalize());
-    } else if (state === 'dead') {
-      this.rotWorld(B.R_Bicep, right, 0.8);
-      this.rotWorld(B.L_Bicep, right, -0.6);
+    const amt = Math.min(1, speed / 2.5);
+    this.phase += dt * (4 + speed * 2.2);
+    const sw = Math.sin(this.phase) * 0.7 * amt;
+    this.rotWorld(B.lThigh, right, -sw);
+    this.rotWorld(B.rThigh, right, sw);
+    this.rotWorld(B.lCalf, right, Math.max(0, Math.cos(this.phase)) * 0.9 * amt);
+    this.rotWorld(B.rCalf, right, Math.max(0, -Math.cos(this.phase)) * 0.9 * amt);
+    this.rotWorld(B.spine, right, 0.15 * amt + Math.sin(time * 2) * 0.02);
+    if (armsDir) {
+      const d = armsDir.clone();
+      if (swing > 0) d.addScaledVector(up, Math.cos(swing * Math.PI) * 1.2).normalize();
+      const r = d.clone().addScaledVector(right, 0.12).normalize();
+      const l = d.clone().addScaledVector(right, -0.12).normalize();
+      this.aim(B.rUpper, B.rFore, r);
+      this.aim(B.rFore, B.rHand, r);
+      this.aim(B.lUpper, B.lFore, l);
+      this.aim(B.lFore, B.lHand, l);
+    } else {
+      // arms swing with the stride
+      this.rotWorld(B.rUpper, right, -sw * 0.6);
+      this.rotWorld(B.lUpper, right, sw * 0.6);
     }
-  }
-
-  handPos(out) {
-    (this.b.R_Hand || this.b.Head).getWorldPosition(out);
-    return out;
   }
 
   updateSuit(uniforms) {
     const B = this.b;
-    if (!B.Neck_Lower || !B.Pelvis) return;
-    B.Neck_Lower.getWorldPosition(uniforms.uNeck.value);
-    B.Pelvis.getWorldPosition(_b);
+    if (!B.neck || !B.pelvis) return;
+    B.neck.getWorldPosition(uniforms.uNeck.value);
+    B.pelvis.getWorldPosition(_b);
     uniforms.uUp.value.subVectors(uniforms.uNeck.value, _b);
     const len = uniforms.uUp.value.length();
     uniforms.uUp.value.multiplyScalar(1 / len);
@@ -175,9 +182,9 @@ export class GnomeRig {
 
 // ---------- Procedural weapon meshes ----------
 const gunMats = {
-  metal: new THREE.MeshStandardMaterial({ color: 0x23262b, roughness: 0.45, metalness: 0.8 }),
-  dark: new THREE.MeshStandardMaterial({ color: 0x111214, roughness: 0.7, metalness: 0.3 }),
-  wood: new THREE.MeshStandardMaterial({ color: 0x5a3418, roughness: 0.8 }),
+  metal: new THREE.MeshStandardMaterial({ color: 0x6c727c, roughness: 0.38, metalness: 0.3 }),
+  dark: new THREE.MeshStandardMaterial({ color: 0x3c3f45, roughness: 0.55, metalness: 0.2 }),
+  wood: new THREE.MeshStandardMaterial({ color: 0x7a4a26, roughness: 0.75 }),
 };
 
 const CAT_SHAPE = {
@@ -239,6 +246,8 @@ export function makeGun(w) {
     g.add(coil2);
   }
   g.userData.muzzle = sh.len * 0.8 + sh.barrel;
+  g.userData.grip = new THREE.Vector3(0, -sh.h * 1.1, -0.02);
+  g.userData.fore = w.cat === 'pistol' ? new THREE.Vector3(-0.02, -sh.h * 1.25, 0.03) : new THREE.Vector3(0, -sh.h * 0.55, sh.len * 0.62);
   g.traverse((o) => { o.castShadow = false; });
   return g;
 }
