@@ -25,6 +25,50 @@ export class Sfx {
     this.startAmbience();
   }
 
+  // Play fn's sounds panned/attenuated as if coming from a point (pan -1..1, vol 0..1).
+  spatial(pan, vol, fn) {
+    if (!this.ctx || vol <= 0.01) return;
+    const p = this.ctx.createStereoPanner();
+    p.pan.value = Math.max(-1, Math.min(1, pan));
+    const g = this.ctx.createGain();
+    g.gain.value = vol;
+    p.connect(g); g.connect(this.master);
+    const prev = this.out;
+    this.out = p;
+    try { fn(); } finally { this.out = prev; }
+  }
+
+  roar() {
+    if (!this.ok('roar', 400)) return;
+    this.tone({ type: 'sawtooth', f0: 90, f1: 45, dur: 1.0, gain: 0.3, attack: 0.1 });
+    this.tone({ type: 'square', f0: 60, f1: 38, dur: 1.0, gain: 0.15, attack: 0.1 });
+    this.noiseHit({ dur: 0.9, freq: 500, type: 'bandpass', q: 0.8, gain: 0.35, attack: 0.1 });
+  }
+  shriek() {
+    if (!this.ok('shriek', 250)) return;
+    this.tone({ type: 'sawtooth', f0: 900, f1: 1600, dur: 0.35, gain: 0.12, attack: 0.02 });
+    this.tone({ type: 'square', f0: 1300, f1: 700, dur: 0.35, gain: 0.06, attack: 0.02 });
+  }
+  knife() {
+    if (!this.ctx) return;
+    this.noiseHit({ dur: 0.14, freq: 4000, freqEnd: 1500, type: 'bandpass', q: 1.5, gain: 0.3, attack: 0.01 });
+  }
+  powerup() {
+    if (!this.ctx) return;
+    [523, 784, 1046, 1568].forEach((f, i) => this.tone({ type: 'square', f0: f, dur: 0.18, gain: 0.08, delay: i * 0.08 }));
+    this.tone({ type: 'sine', f0: 200, f1: 800, dur: 0.5, gain: 0.2 });
+  }
+  nuke() {
+    if (!this.ctx) return;
+    this.noiseHit({ dur: 2.2, freq: 900, freqEnd: 30, gain: 1.0, attack: 0.05 });
+    this.tone({ type: 'sine', f0: 120, f1: 20, dur: 2, gain: 0.9 });
+  }
+  blackout() {
+    if (!this.ctx) return;
+    this.tone({ type: 'sawtooth', f0: 220, f1: 30, dur: 1.4, gain: 0.25 });
+    this.noiseHit({ dur: 0.3, freq: 2500, type: 'highpass', gain: 0.3 });
+  }
+
   setMuted(m) { if (this.master) this.master.gain.value = m ? 0 : this.volume; }
 
   ok(key, ms) {
@@ -53,7 +97,7 @@ export class Sfx {
     if (freqEnd) f.frequency.exponentialRampToValueAtTime(freqEnd, t + dur);
     const g = c.createGain();
     this.env(g, t, attack, dur, gain);
-    src.connect(f); f.connect(g); g.connect(this.master);
+    src.connect(f); f.connect(g); g.connect(this.out || this.master);
     src.start(t, Math.random()); src.stop(t + dur + 0.05);
   }
 
@@ -65,7 +109,7 @@ export class Sfx {
     if (f1) o.frequency.exponentialRampToValueAtTime(f1, t + dur);
     const g = c.createGain();
     this.env(g, t, attack, dur, gain);
-    o.connect(g); g.connect(this.master);
+    o.connect(g); g.connect(this.out || this.master);
     o.start(t); o.stop(t + dur + 0.05);
   }
 

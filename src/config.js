@@ -53,6 +53,13 @@ export const WEAPONS = [
 ];
 export const WEAPON_BY_ID = Object.fromEntries(WEAPONS.map((w) => [w.id, w]));
 
+// Spare magazines carried per weapon class. The starter M9 never runs dry.
+const RESERVE_MAGS = { pistol: 6, smg: 5, shotgun: 5, rifle: 5, lmg: 3, sniper: 4, special: 3 };
+export function maxReserve(w) { return w.id === 'm9' ? Infinity : w.mag * (RESERVE_MAGS[w.cat] || 4); }
+export function ammoPrice(w) { return w.id === 'm9' ? 0 : Math.max(60, Math.round((w.price * 0.3) / 10) * 10); }
+// Aim-down-sights zoom (field of view) per class.
+export const ADS_FOV = { pistol: 62, smg: 60, shotgun: 64, rifle: 52, lmg: 56, sniper: 22, special: 58 };
+
 // Each demon class has several models; one is picked at random per spawn.
 export const ENEMY_TYPES = {
   easy: {
@@ -108,9 +115,32 @@ export const MED_ITEMS = [
   { id: 'comp_up', name: 'დამხმარის გაძლიერება', desc: '+ზიანი, +სიცოცხლე, +სისწრაფე (მაქს. 5 დონე)', price: 800 },
 ];
 
-export const BOOST_LABELS = { dmg: '×2 ზიანი', rate: 'სწრაფი სროლა', speed: 'სისწრაფე', regen: 'რეგენი' };
+export const BOOST_LABELS = { dmg: '×2 ზიანი', rate: 'სწრაფი სროლა', speed: 'სისწრაფე', regen: 'რეგენი', insta: 'ერთი დარტყმით', double: '×2 ქოინი' };
 
-export function waveComposition(wave) {
+// Power-ups that demons sometimes drop (walk over them to pick up).
+export const POWERUPS = {
+  ammo: { name: 'მაქსიმალური ტყვიები', color: 0x40ff70, weight: 32 },
+  insta: { name: 'ერთი დარტყმით კვლა', color: 0xff3030, weight: 20, time: 15 },
+  double: { name: 'ორმაგი ქოინები', color: 0xffc530, weight: 28, time: 20 },
+  nuke: { name: 'ბირთვული აფეთქება', color: 0xffffff, weight: 10 },
+};
+export const DROP_CHANCE = 0.035;
+
+// Special rounds: every 5th wave brings extra brutes, waves 3, 8, 13... are a Fast-only
+// "hell rush", and from wave 4 on any other wave may be a blackout.
+export function waveKind(wave) {
+  if (wave % 5 === 0) return 'boss';
+  if (wave % 5 === 3) return 'rush';
+  if (wave >= 4 && Math.random() < 0.3) return 'blackout';
+  return 'normal';
+}
+
+export function waveComposition(wave, kind = 'normal') {
+  if (kind === 'rush') {
+    const list = [];
+    for (let i = 0; i < Math.round((8 + wave * 4) * 1.2); i++) list.push('fast');
+    return list;
+  }
   const total = 8 + wave * 4;
   const fastShare = wave < 2 ? 0 : Math.min(0.35, 0.08 * wave);
   const bruteShare = wave < 3 ? 0 : Math.min(0.2, 0.03 * wave);
