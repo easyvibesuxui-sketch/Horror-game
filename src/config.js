@@ -78,7 +78,7 @@ export const ENEMY_TYPES = {
   },
 };
 
-export const PLAYER = { hp: 100, speed: 4.2, radius: 0.3, eye: 1.62, downedTime: 10, downedHp: 80 };
+export const PLAYER = { hp: 100, speed: 4.2, radius: 0.3, eye: 1.62, downedTime: 10, downedHp: 100 };
 // The black dog fights up close with her blades.
 export const COMPANION = { name: 'შავი ძაღლი', hp: 170, speed: 4.8, dmg: 34, atkRate: 0.75, reach: 0.95, seek: 9, leash: 11, reviveTime: 2.5 };
 

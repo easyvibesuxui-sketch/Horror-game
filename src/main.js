@@ -454,7 +454,8 @@ class Enemy {
       this.retarget = 0.4;
       const dp = player.state === 'dead' ? Infinity : this.pos.distanceTo(player.pos);
       const dc = comp.state === 'up' ? this.pos.distanceTo(comp.pos) : Infinity;
-      this.target = dc < dp * 0.8 ? comp : player;
+      // a downed player is prey: every demon goes for the kill
+      this.target = player.state !== 'down' && dc < dp * 0.8 ? comp : player;
     }
     const tg = this.target;
     const dx = tg.pos.x - this.pos.x, dz = tg.pos.z - this.pos.z;
@@ -853,9 +854,10 @@ function hurtPlayer(dmg, from) {
   if (player.invuln > 0 || G.over) return;
   if (from) showDamageDir(from.pos);
   if (player.state === 'down') {
-    player.downHp -= dmg * 0.5; // demons maul a downed player less, so the 10s stand is winnable
-    flashHurt(0.5);
+    player.downHp -= dmg;
+    flashHurt(0.7);
     sfx.hurt();
+    G.shake = Math.min(0.6, G.shake + 0.2);
     if (player.downHp <= 0) killedWhileDown();
     return;
   }
@@ -1375,8 +1377,10 @@ function updateHUD(dt) {
     setText('wave-sub', `დემონები: ${aliveCount() + G.queue.length}`);
   }
   setText('coin-val', String(G.coins));
-  $('hp-fill').style.width = `${clamp(p.hp / p.maxHp, 0, 1) * 100}%`;
-  setText('hp-val', String(Math.ceil(Math.max(0, p.hp))));
+  const hpNow = p.state === 'down' ? p.downHp : p.hp;
+  const hpMax = p.state === 'down' ? PLAYER.downedHp : p.maxHp;
+  $('hp-fill').style.width = `${clamp(hpNow / hpMax, 0, 1) * 100}%`;
+  setText('hp-val', String(Math.ceil(Math.max(0, hpNow))));
   $('ar-fill').style.width = `${p.maxArmor ? clamp(p.armor / p.maxArmor, 0, 1) * 100 : 0}%`;
   setText('ar-val', String(Math.ceil(p.armor)));
   setHTML('items', `<span class="chip ${p.grenades ? '' : 'off'}">[G] ყუმბარა ×${p.grenades}</span>`
