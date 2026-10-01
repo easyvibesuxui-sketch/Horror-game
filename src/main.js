@@ -13,6 +13,7 @@ import { Sfx } from './audio.js';
 import { FX } from './fx.js';
 import { makeGnome, Rig, VALVE_BONES } from './rig.js';
 import { ViewModel } from './viewmodel.js';
+import { initWeaponModels, propModel } from './weapons3d.js';
 
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
@@ -46,7 +47,7 @@ camera.rotation.order = 'YXZ';
 const sfx = new Sfx();
 const fx = new FX(scene);
 const nav = new Nav();
-const vm = new ViewModel(fx.glowTex);
+const vm = new ViewModel(fx.glowTex, renderer);
 
 // ---------------------------------------------------------------- lights
 const hemi = new THREE.HemisphereLight(0x8a9ac0, 0x1a0c0c, 0.5);
@@ -100,7 +101,7 @@ async function loadAssets() {
   loader.setMeshoptDecoder(MeshoptDecoder);
   const files = {
     arena: 'arena.glb', chromie: 'chromie.glb', huggy: 'huggy.glb', butcher: 'butcher.glb',
-    dog: 'dog.glb', siren: 'siren.glb', nurse: 'nurse.glb',
+    dog: 'dog.glb', siren: 'siren.glb', nurse: 'nurse.glb', weapons: 'weapons.glb',
   };
   const prog = {};
   const update = () => {
@@ -743,10 +744,17 @@ function spread3(dir, spread) {
 }
 
 // Distance along a ray to the level geometry.
+const lastHit = { point: new THREE.Vector3(), normal: new THREE.Vector3(), ok: false };
 function wallHit(o, d, max) {
   raycaster.set(o, d);
   raycaster.far = max;
   const h = raycaster.intersectObjects(G.blockers, false);
+  lastHit.ok = h.length > 0 && !!h[0].face;
+  if (lastHit.ok) {
+    lastHit.point.copy(h[0].point);
+    lastHit.normal.copy(h[0].face.normal).transformDirection(h[0].object.matrixWorld);
+    if (lastHit.normal.dot(d) > 0) lastHit.normal.negate();
+  }
   return h.length ? h[0].distance : max;
 }
 
@@ -788,6 +796,7 @@ function hitMarker(head) {
 // Hitscan bullet from the eye (o) along d; tracer drawn from the gun muzzle.
 function bullet(o, muzzle, d, dmg, pierce, range, color, beam) {
   const wall = wallHit(o, d, range);
+  const wallInfo = lastHit.ok ? { p: lastHit.point.clone(), n: lastHit.normal.clone() } : null;
   const hits = [];
   for (const e of G.enemies) {
     if (!isLive(e)) continue;
@@ -812,7 +821,10 @@ function bullet(o, muzzle, d, dmg, pierce, range, color, beam) {
     const c = color || TRACER;
     for (let i = 0; i < 2; i++) fx.tracers.add(muzzle, endP, c, 0.22);
   }
-  if (end === wall && wall < range) fx.sparks(endP, beam ? (color ? color.getHex() : 0x88ffff) : 0xffc060, beam ? 10 : 4);
+  if (end === wall && wall < range) {
+    fx.sparks(endP, beam ? (color ? color.getHex() : 0x88ffff) : 0xffc060, beam ? 10 : 4);
+    if (wallInfo && !beam) fx.bulletHole(wallInfo.p, wallInfo.n);
+  }
   return { any, head };
 }
 
@@ -922,7 +934,7 @@ function throwGrenade() {
   const d = lookDir();
   const start = camera.position.clone().addScaledVector(d, 0.4);
   const vel = d.clone().multiplyScalar(11).add(_v.set(0, 3, 0));
-  const mesh = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 6), new THREE.MeshStandardMaterial({ color: 0x2c3a20, emissive: 0xff2000, emissiveIntensity: 0.4 }));
+  const mesh = propModel('grenade', 0.13) || new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 6), new THREE.MeshStandardMaterial({ color: 0x2c3a20 }));
   mesh.position.copy(start);
   scene.add(mesh);
   G.projectiles.push({ kind: 'grenade', mesh, pos: mesh.position, vel, life: 1.8, dmg: 260, splash: 4 });
@@ -1272,7 +1284,7 @@ function updatePlayer(dt) {
   vm.holder.visible = !scoped;
   $('scope').style.opacity = scoped ? 1 : 0;
   vm.update(dt, {
-    speed: down ? 0 : p.speed, lookDX, lookDY, ads: p.ads, sprint: p.sprinting,
+    speed: down ? 0 : p.speed, lookDX, lookDY, ads: p.ads, sprint: p.sprinting, firing: trigger && slot.ammo > 0,
     reload: p.reloadT > 0 ? 1 - p.reloadT / p.reloadMax : -1, down, light: 0.55,
   });
 
@@ -2078,6 +2090,7 @@ addEventListener('keydown', (e) => {
   if (e.code === 'KeyQ') switchSlot(player.lastSlot);
   if (e.code === 'KeyG') throwGrenade();
   if (e.code === 'KeyV') knifeAttack();
+  if (e.code === 'KeyI' && player.state === 'up' && player.reloadT <= 0) vm.inspect();
   if (e.code === 'KeyF') placeMine();
   if (e.code === 'KeyN' && G.phase === 'break') G.breakT = 0;
   if (e.code === 'KeyM') { G.muted = !G.muted; sfx.setMuted(G.muted); }
@@ -2162,6 +2175,9 @@ if (DEBUG) {
     coinTex = await new THREE.TextureLoader().loadAsync(`${BASE}media/coin.webp`).catch(() => null);
     if (coinTex) coinTex.colorSpace = THREE.SRGBColorSpace;
     for (const k of ['huggy', 'butcher', 'siren', 'nurse', 'dog']) prepModel(k);
+    initWeaponModels(assets.weapons);
+    vm.initProps();
+    player.vmId = null;
     await new Promise((r) => setTimeout(r, 30));
     buildWorld();
     $('load-fill').style.width = '95%';

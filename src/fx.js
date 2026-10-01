@@ -5,6 +5,8 @@ const _p = new THREE.Vector3();
 const _s = new THREE.Vector3();
 const _q = new THREE.Quaternion();
 const _e = new THREE.Euler();
+const _q2 = new THREE.Quaternion();
+const _zAxis = new THREE.Vector3(0, 0, 1);
 
 class Particles {
   constructor(scene, max, additive) {
@@ -154,6 +156,48 @@ export class FX {
     scene.add(this.decals);
     this.floorY = 0;
     this.tmpColor = new THREE.Color();
+  }
+
+  // Bullet holes on walls/props (scorched hole, oriented to the surface).
+  initHoles() {
+    const c = document.createElement('canvas');
+    c.width = c.height = 64;
+    const x = c.getContext('2d');
+    const g = x.createRadialGradient(32, 32, 2, 32, 32, 30);
+    g.addColorStop(0, 'rgba(0,0,0,1)');
+    g.addColorStop(0.28, 'rgba(10,8,6,0.95)');
+    g.addColorStop(0.45, 'rgba(40,30,20,0.6)');
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    x.fillStyle = g;
+    x.fillRect(0, 0, 64, 64);
+    const t = new THREE.CanvasTexture(c);
+    this.holeMax = 120;
+    this.holes = new THREE.InstancedMesh(new THREE.PlaneGeometry(0.09, 0.09),
+      new THREE.MeshBasicMaterial({ map: t, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4 }), this.holeMax);
+    _m.makeScale(0, 0, 0);
+    for (let i = 0; i < this.holeMax; i++) this.holes.setMatrixAt(i, _m);
+    this.holes.frustumCulled = false;
+    this.holeI = 0;
+    this.scene.add(this.holes);
+  }
+
+  bulletHole(point, normal) {
+    if (!this.holes) this.initHoles();
+    const i = this.holeI;
+    this.holeI = (this.holeI + 1) % this.holeMax;
+    _p.copy(point).addScaledVector(normal, 0.004);
+    _q.setFromUnitVectors(_zAxis, normal);
+    _q.multiply(_q2.setFromAxisAngle(_zAxis, Math.random() * 6.28));
+    const s = 0.7 + Math.random() * 0.6;
+    _s.set(s, s, 1);
+    _m.compose(_p, _q, _s);
+    this.holes.setMatrixAt(i, _m);
+    this.holes.instanceMatrix.needsUpdate = true;
+    // dust puff
+    const c = this.tmpColor.set(0x6a625a);
+    for (let k = 0; k < 4; k++) {
+      this.solid.spawn(point.x, point.y, point.z, normal.x * 1.5 + (Math.random() - 0.5), normal.y * 1.5 + Math.random(), normal.z * 1.5 + (Math.random() - 0.5), 0.4, 0.025, c, 6);
+    }
   }
 
   flash(pos, color, size, life = 0.08) {
