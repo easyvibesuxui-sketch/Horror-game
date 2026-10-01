@@ -83,6 +83,18 @@
       <div class="subtitle">The demons are coming. They never stop.</div>
       <div id="load-status">Loading...</div>
       <div id="load-track"><div id="load-fill"></div></div>
+      <div class="menu-label">Difficulty</div>
+      <div id="difficulty">
+        <button data-diff="easy">Easy</button>
+        <button data-diff="medium">Medium</button>
+        <button data-diff="hard">Hard</button>
+      </div>
+      <div id="diff-desc"></div>
+      <div id="promo-row">
+        <input id="promo" type="text" placeholder="Promo code" maxlength="16" autocomplete="off" spellcheck="false" />
+        <button id="promo-apply">Apply</button>
+      </div>
+      <div id="promo-msg"></div>
       <button id="play" class="big-btn" disabled>Play</button>
       <div class="controls">
         <div><kbd>Click</kbd> capture mouse</div><div><kbd>Mouse</kbd> look</div>
@@ -93,6 +105,7 @@
         <div><kbd>E</kbd> shop / hold to revive dog</div><div><kbd>N</kbd> start next wave</div>
         <div><kbd>Esc</kbd> <kbd>P</kbd> pause</div><div><kbd>I</kbd> inspect weapon · <kbd>M</kbd> mute</div>
       </div>
+      <div class="menu-label">Demon types</div>
       <div class="legend">
         <span><i class="dot easy"></i>Easy — Huggy, Nurse</span>
         <span><i class="dot fast"></i>Fast — Chromie, Red Huggy</span>

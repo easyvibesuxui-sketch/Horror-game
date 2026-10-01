@@ -168,5 +168,16 @@ export function waveScaling(wave) {
   };
 }
 
+// Difficulty presets (chosen in the menu). Multipliers on demon stats and wave size.
+// abil: cooldown multiplier for pounces/charges (lower = more often).
+export const DIFFICULTY = {
+  easy: { label: 'Easy', desc: 'Weaker, slower demons · fewer per wave · +25% coins', hp: 0.7, dmg: 0.6, speed: 0.9, count: 0.8, alive: 0.8, coins: 1.25, abil: 1.35, downed: 12 },
+  medium: { label: 'Medium', desc: 'The intended experience', hp: 1, dmg: 1, speed: 1, count: 1, alive: 1, coins: 1, abil: 1, downed: 10 },
+  hard: { label: 'Hard', desc: 'Tougher, faster, hungrier demons · bigger waves · fewer coins', hp: 1.45, dmg: 1.5, speed: 1.12, count: 1.3, alive: 1.25, coins: 0.85, abil: 0.7, downed: 8 },
+};
+
+// Promo codes entered in the menu before starting.
+export const PROMO_CODES = { 1010: { coins: 1000000, label: '+1,000,000 coins' } };
+
 export const BREAK_TIME = 20;
 export const FIRST_BREAK = 12;

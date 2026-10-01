@@ -6,7 +6,7 @@ import { computeBoundsTree, acceleratedRaycast } from 'three-mesh-bvh';
 import {
   WEAPONS, WEAPON_BY_ID, CATEGORIES, ENEMY_TYPES, PLAYER, COMPANION, SHOPS, ARMOR_ITEMS, MED_ITEMS,
   BOOST_LABELS, waveComposition, waveScaling, waveKind, BREAK_TIME, FIRST_BREAK,
-  maxReserve, ammoPrice, ADS_FOV, POWERUPS, DROP_CHANCE,
+  maxReserve, ammoPrice, ADS_FOV, POWERUPS, DROP_CHANCE, DIFFICULTY, PROMO_CODES,
 } from './config.js';
 import { Nav, VOID, FLOOR, OBST } from './nav.js';
 import { Sfx } from './audio.js';
@@ -74,6 +74,7 @@ const G = {
   started: false, paused: false, over: false,
   time: 0, wave: 0, phase: 'break', breakT: 0, queue: [], spawnT: 0, scale: waveScaling(1),
   coins: 0, kills: 0, shake: 0,
+  diff: 'medium', promoCoins: 0,
   enemies: [], pool: {},
   projectiles: [], mines: [], rifts: [], kiosks: [], blockers: [], powerups: [],
   shopOpen: null, flowT: 0, groanT: 3, heartT: 0, locked: false,
@@ -394,8 +395,8 @@ class Enemy {
     this.retarget = 0;
     this.active = true;
     this.stun = 0;
-    this.leapCd = rand(1.5, 3);
-    this.chargeCd = rand(3, 6);
+    this.leapCd = rand(1.5, 3) * D().abil;
+    this.chargeCd = rand(3, 6) * D().abil;
     this.lastHead = false;
     this.lastMelee = false;
     this.root.rotation.y = Math.atan2(player.pos.x - x, player.pos.z - z);
@@ -430,7 +431,7 @@ class Enemy {
     if (this.action) this.action.paused = true;
     if (this.rig) this.rig.update(0, 0, this.root.rotation.y, null, 'dead', G.time);
     G.kills++;
-    let coins = this.T.coins;
+    let coins = Math.round(this.T.coins * D().coins);
     let tag = '';
     if (this.lastHead) { coins = Math.round(coins * 1.5); tag = ' HEADSHOT'; }
     if (this.lastMelee) { coins += 10; tag = ' KNIFE'; }
@@ -605,7 +606,7 @@ class Enemy {
       if (k >= 1) {
         this.state = 'chase';
         this.body.position.y = 0;
-        this.leapCd = rand(3.5, 5.5);
+        this.leapCd = rand(3.5, 5.5) * D().abil;
         this.atkCd = 0.9;
         if (Math.hypot(tg.pos.x - this.pos.x, tg.pos.z - this.pos.z) < reach + 0.5) this.hit(tg, this.dmg * 1.3);
       }
@@ -647,7 +648,7 @@ class Enemy {
 
   endCharge() {
     this.state = 'chase';
-    this.chargeCd = rand(6, 9);
+    this.chargeCd = rand(6, 9) * D().abil;
     this.atkCd = 1.2;
     this.stun = 0.5; // winded after a charge: a window to punish it
   }
@@ -1047,7 +1048,7 @@ function showDamageDir(src) {
 function goDown() {
   player.hp = 0;
   player.state = 'down';
-  player.downT = PLAYER.downedTime;
+  player.downT = D().downed;
   player.downHp = PLAYER.downedHp;
   player.reloadT = 0;
   player.downedGun.ammo = WEAPON_BY_ID.m9.mag;
@@ -1549,8 +1550,14 @@ function startWave() {
   G.wave++;
   G.phase = 'wave';
   G.waveKind = waveKind(G.wave);
-  G.scale = { ...waveScaling(G.wave) };
+  const d = D();
+  const base = waveScaling(G.wave);
+  G.scale = { ...base, hp: base.hp * d.hp, dmg: base.dmg * d.dmg, speed: base.speed * d.speed, maxAlive: Math.round(base.maxAlive * d.alive) };
   G.queue = waveComposition(G.wave, G.waveKind);
+  // resize the wave for the difficulty, keeping its mix of demon types
+  const target = Math.max(4, Math.round(G.queue.length * d.count));
+  while (G.queue.length > target) G.queue.splice(Math.floor(Math.random() * G.queue.length), 1);
+  while (G.queue.length < target) G.queue.splice(Math.floor(Math.random() * G.queue.length), 0, G.queue[Math.floor(Math.random() * G.queue.length)]);
   if (G.waveKind === 'rush') { G.scale.spawnGap *= 0.55; G.scale.maxAlive += 6; }
   G.spawnT = 1.5;
   G.waveTotal = G.queue.length;
@@ -1562,7 +1569,7 @@ function startWave() {
     blackout: `BLACKOUT... ${G.waveTotal} demons in the dark`,
     normal: `${G.waveTotal} demons`,
   }[G.waveKind];
-  announce(`WAVE ${G.wave}`, sub, 2.8);
+  announce(`WAVE ${G.wave}`, `${sub} · ${d.label}`, 2.8);
   if (G.waveKind === 'blackout') { setBlackout(true); sfx.blackout(); }
   hemi.color.set(0xff3030);
   setTimeout(() => hemi.color.set(0x8a9ac0), 900);
@@ -2021,9 +2028,10 @@ function gameOver() {
   if (document.pointerLockElement) document.exitPointerLock();
   $('downed').classList.add('hidden');
   let best = 0;
-  try { best = Number(localStorage.getItem('hw-best') || 0); if (G.wave > best) localStorage.setItem('hw-best', String(G.wave)); } catch (e) { /* storage unavailable */ }
-  $('go-stats').innerHTML = `You survived <b>${Math.max(0, G.wave - 1)}</b> waves · reached wave <b>${G.wave}</b><br>Demons killed: <b>${G.kills}</b><br>`
-    + `${G.wave > best ? 'NEW RECORD!' : `Best: wave ${best}`}`;
+  const key = `hw-best-${G.diff}`;
+  try { best = Number(localStorage.getItem(key) || 0); if (G.wave > best) localStorage.setItem(key, String(G.wave)); } catch (e) { /* storage unavailable */ }
+  $('go-stats').innerHTML = `Difficulty: <b>${D().label}</b><br>You survived <b>${Math.max(0, G.wave - 1)}</b> waves · reached wave <b>${G.wave}</b><br>Demons killed: <b>${G.kills}</b><br>`
+    + `${G.wave > best ? 'NEW RECORD!' : `Best on ${D().label}: wave ${best}`}`;
   $('gameover').classList.remove('hidden');
   $('hud').classList.add('hidden');
 }
@@ -2034,7 +2042,7 @@ function resetGame() {
   for (const m of G.mines) scene.remove(m.g);
   G.projectiles.length = 0;
   G.mines.length = 0;
-  Object.assign(G, { over: false, paused: false, time: 0, wave: 0, coins: 0, kills: 0, shake: 0, queue: [], shopOpen: null });
+  Object.assign(G, { over: false, paused: false, time: 0, wave: 0, coins: G.promoCoins, kills: 0, shake: 0, queue: [], shopOpen: null });
   Object.assign(player, {
     hp: PLAYER.hp, maxHp: PLAYER.hp, armor: 0, maxArmor: 0, state: 'up', invuln: 0, eye: PLAYER.eye, roll: 0,
     slots: [newSlot('m9'), null, null], cur: 0, lastSlot: 0,
@@ -2136,7 +2144,42 @@ $('shop').addEventListener('mousedown', (e) => { if (e.target === $('shop')) clo
 $('resume').addEventListener('click', () => { setPaused(false); lockPointer(); });
 $('restart').addEventListener('click', () => { sfx.init(); resetGame(); lockPointer(); });
 $('pause-restart').addEventListener('click', () => { setPaused(false); resetGame(); lockPointer(); });
+// ---------------------------------------------------------------- menu: difficulty + promo code
+function D() { return DIFFICULTY[G.diff] || DIFFICULTY.medium; }
+function renderDifficulty() {
+  for (const b of document.querySelectorAll('#difficulty button')) b.classList.toggle('active', b.dataset.diff === G.diff);
+  $('diff-desc').textContent = D().desc;
+  let best = 0;
+  try { best = Number(localStorage.getItem(`hw-best-${G.diff}`) || 0); } catch (e) { /* storage unavailable */ }
+  $('best').textContent = best ? `Best on ${D().label}: wave ${best}` : '';
+}
+for (const b of document.querySelectorAll('#difficulty button')) {
+  b.addEventListener('click', () => {
+    G.diff = b.dataset.diff;
+    try { localStorage.setItem('hw-diff', G.diff); } catch (e) { /* storage unavailable */ }
+    renderDifficulty();
+  });
+}
+function applyPromo() {
+  const code = $('promo').value.trim();
+  const msg = $('promo-msg');
+  if (!code) { msg.textContent = ''; return; }
+  const p = PROMO_CODES[code];
+  if (p) {
+    G.promoCoins = p.coins;
+    msg.textContent = `Code accepted: ${p.label}`;
+    msg.className = 'ok';
+  } else {
+    msg.textContent = 'Invalid code';
+    msg.className = 'bad';
+  }
+}
+$('promo-apply').addEventListener('click', applyPromo);
+$('promo').addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Enter') applyPromo(); });
+renderDifficulty();
+
 $('play').addEventListener('click', () => {
+  if ($('promo').value.trim() && !G.promoCoins) applyPromo();
   sfx.init();
   $('menu').classList.add('hidden');
   const bg = $('bgvideo');
@@ -2167,8 +2210,9 @@ if (DEBUG) {
 // ---------------------------------------------------------------- boot
 (async function boot() {
   try {
-    const best = Number(localStorage.getItem('hw-best') || 0);
-    if (best) $('best').textContent = `Best: wave ${best}`;
+    const saved = localStorage.getItem('hw-diff');
+    if (saved && DIFFICULTY[saved]) G.diff = saved;
+    renderDifficulty();
   } catch (e) { /* storage unavailable */ }
   try {
     await loadAssets();

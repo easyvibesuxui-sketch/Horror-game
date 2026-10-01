@@ -137,7 +137,7 @@ canvas#game { position: fixed; inset: 0; width: 100%; height: 100%; display: blo
 .big-btn:hover:not(:disabled) { background: var(--blood-bright); }
 .controls { margin-top: 26px; font-size: 14px; color: var(--muted); display: grid; gap: 5px; }
 kbd { font-family: inherit; font-size: 12px; padding: 1px 6px; border: 1px solid rgba(255,255,255,0.25); border-radius: 3px; color: var(--ink); background: rgba(255,255,255,0.06); }
-.legend { margin-top: 18px; display: flex; gap: 18px; justify-content: center; flex-wrap: wrap; font-size: 14px; }
+.legend { margin-top: 8px; display: flex; gap: 18px; justify-content: center; flex-wrap: wrap; font-size: 14px; }
 .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
 .dot.easy { background: #4a8cff; } .dot.fast { background: #ff3b30; } .dot.brute { background: #c8903a; }
 #best { margin-top: 14px; color: var(--gold); font-size: 14px; }
@@ -178,3 +178,20 @@ kbd { font-family: inherit; font-size: 12px; padding: 1px 6px; border: 1px solid
 #pause .controls { margin-top: 10px; }
 @media (max-width: 700px) { .controls { grid-template-columns: 1fr; } #stage-clear { min-width: 0; width: calc(100vw - 32px); } }
 .coin-icon.small { width: 18px; height: 18px; margin-right: 3px; vertical-align: -3px; }
+
+/* Menu: difficulty + promo code */
+.menu-label { margin-top: 22px; font-size: 14px; letter-spacing: 3px; text-transform: uppercase; color: var(--muted); }
+#difficulty { display: inline-flex; margin-top: 8px; border: 1px solid rgba(255,60,60,0.45); border-radius: 5px; overflow: hidden; }
+#difficulty button { font-family: inherit; font-size: 18px; font-weight: 600; padding: 8px 22px; background: rgba(0,0,0,0.45); color: var(--muted); border: none; border-right: 1px solid rgba(255,60,60,0.3); cursor: pointer; letter-spacing: 1px; }
+#difficulty button:last-child { border-right: none; }
+#difficulty button:hover { color: var(--ink); background: rgba(192,24,24,0.2); }
+#difficulty button.active { background: var(--blood); color: #fff; }
+#diff-desc { margin-top: 6px; font-size: 14px; color: var(--muted); min-height: 18px; }
+#promo-row { display: flex; gap: 8px; justify-content: center; margin-top: 16px; }
+#promo { font-family: inherit; font-size: 16px; width: 170px; padding: 7px 10px; background: rgba(0,0,0,0.55); color: var(--ink); border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; letter-spacing: 2px; text-align: center; }
+#promo:focus { outline: none; border-color: var(--gold); }
+#promo-apply { font-family: inherit; font-size: 15px; font-weight: 600; padding: 7px 16px; background: transparent; color: var(--gold); border: 1px solid rgba(255,197,48,0.5); border-radius: 4px; cursor: pointer; }
+#promo-apply:hover { background: rgba(255,197,48,0.12); }
+#promo-msg { margin-top: 6px; font-size: 14px; min-height: 18px; }
+#promo-msg.ok { color: #7dffa4; }
+#promo-msg.bad { color: var(--blood-bright); }
